@@ -3,15 +3,19 @@
   "version": "0.0.1-2",
   "description": "Observable Firestore documents and collections using MobX",
   "main": "dist/index.js",
+  "module": "dist/index.es.js",
+  "files": [
+    "dist"
+  ],
+  "types": "dist/index.d.ts",
   "np": {
-    "yarn": false,
     "contents": "dist"
   },
   "scripts": {
+    "build": "rollup -c",
+    "build:watch": "rollup -cw",
     "deploy": "np",
     "test": "echo \"Error: no test specified\" && exit 0",
-    "build": "tsc",
-    "build:watch": "tsc --watch",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\""
   },
@@ -38,6 +42,8 @@
     "eslint-plugin-prettier": "^3.1.0",
     "eslint-plugin-react": "^7.14.2",
     "prettier": "^1.18.2",
+    "rollup": "^1.17.0",
+    "rollup-plugin-typescript2": "^0.22.0",
     "typescript": "^3.5.3"
   }
 }
