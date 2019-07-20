@@ -5,10 +5,11 @@
   - [Restrictions on Dynamic Data Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
     - [Document](#Document)
     - [Collection](#Collection)
+  - [API](#API)
 
 # Firestore MobX
 
-This library was inspired by Firestorter. Read the [migration
+This library was inspired by [Firestorter](https://github.com/IjzerenHein/firestorter). Read the [migration
 docs](/docs/migrate-from-firestorter.md) if you are interested in the motivation
 and differences.
 
@@ -18,11 +19,11 @@ React-Native and Node.js.
 **DISCLAIMER** This library is still very new and based on my personal
 experience using Firestorter. If there are any features that you miss and deem
 essential, please let me know. It is well possible that I have overlooked some
-use-cases.
+valid use-cases.
 
 ## Features
 
-- A flexible and un-opinionated API surface
+- A minimal and un-opinionated API surface
 - Written in Typescript with strict typings
 - Minimal dependencies (only Firebase and MobX really)
 
@@ -62,3 +63,7 @@ offer strong typing some restrictions are enforced.
    you have a relatively small collection and you do want to fetch all of it,
    you can simply pass in a Firestore query that would include everything, for
    example `.orderBy("updatedAt", "desc")`, `.limit(999)` or `.after("0")`
+
+## API
+
+See the [API docs](/docs/api.md).

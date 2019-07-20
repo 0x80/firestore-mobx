@@ -2,11 +2,14 @@
 
 ## Origin
 
-This library was inspired by Firestorter. Huge thanks to @Ijzerenhein for that.
+This library was inspired by
+[Firestorter](https://github.com/IjzerenHein/firestorter). Many thanks to [Hein
+Rutjes](https://github.com/IjzerenHein) for creating that library and
+introducing me to the concepts.
 
-After finding myself using only a small portion of its API and missing strict
-Typescript typings, I decided to create a leaner more focussed alternative based
-on the same core idea.
+After finding myself using only a small portion of the Firestorter API and
+missing strict Typescript typings, I decided to create a leaner more focussed
+alternative based on the same core idea.
 
 By questioning every feature and only implementing the bare essentials I was
 able to discard a lot of the complexity and code. To give you an idea,
