@@ -8,11 +8,12 @@
 
 # Firestore MobX
 
-This library was inspired by Firestorter. Read the [migration docs](/docs/migration) if you are
-interested in the motivation and differences.
+This library was inspired by Firestorter. Read the [migration
+docs](/docs/migrate-from-firestorter.md) if you are interested in the motivation
+and differences.
 
-You should be able to use this in any Javascript application including
-React, React-Native and Node.js.
+You should be able to use this in any Javascript application including React,
+React-Native and Node.js.
 
 **DISCLAIMER** This library is still very new and based on my personal
 experience using Firestorter. If there are any features that you miss and deem

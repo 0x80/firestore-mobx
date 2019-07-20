@@ -1,8 +1,8 @@
-# TODO
+# TODO version 1.0
 
 ## Must Have
 
-- Figure out what to do with refs of sub-collections
+- Figure out what to do with refs of sub-collections. Possibly remove restrictions.
 - Limit document ref changes to same collection, otherwise T doesn't make any
   sense anymore.
 - Add tests
