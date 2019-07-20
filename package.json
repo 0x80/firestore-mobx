@@ -4,6 +4,7 @@
   "description": "Observable Firestore documents and collections using MobX",
   "main": "dist/index.js",
   "np": {
+    "yarn": false,
     "contents": "dist"
   },
   "scripts": {
