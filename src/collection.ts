@@ -17,6 +17,12 @@ interface Options {
 
 type QueryFunction = (ref: firestore.CollectionReference) => firestore.Query;
 
+// function isCollectionReference(
+//   source: firestore.CollectionReference | firestore.Query
+// ): source is firestore.CollectionReference {
+//   return (source as firestore.CollectionReference).id !== undefined;
+// }
+
 export class ObservableCollection<T extends object> {
   @observable private docsObservable: IObservableArray<Document<T>>;
   @observable private isLoadingObservable: IObservableValue<boolean>;
@@ -35,6 +41,11 @@ export class ObservableCollection<T extends object> {
     queryFn?: QueryFunction,
     options?: Options
   ) {
+    /**
+     * I wish it was possible to extract the ref from a Query object, because
+     * then we could make a single source parameter
+     * firestore.CollectionReference | firestore.Query
+     */
     this._ref = ref;
     this._path = ref.path;
 
@@ -46,6 +57,8 @@ export class ObservableCollection<T extends object> {
       this.options = options;
       this.isDebugEnabled = options.debug || false;
     }
+
+    this.logDebug("Constructor");
 
     this.docsObservable = observable.array([]);
     this.isLoadingObservable = observable.box(false);
@@ -118,7 +131,7 @@ export class ObservableCollection<T extends object> {
   }
 
   private handleSnapshot(snapshot: firestore.QuerySnapshot) {
-    this.logDebug("handleSnapshot");
+    this.logDebug(`handleSnapshot, docs.length: ${snapshot.docs.length}`);
 
     runInAction(() => {
       this.docsObservable.replace(
