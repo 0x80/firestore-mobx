@@ -6,16 +6,6 @@
     - [Document](#Document)
     - [Collection](#Collection)
   - [API](#API)
-    Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
-    - [Document](#Document)
-    - [Collection](#Collection)
-  - [API](#API) Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
-    - [Document](#Document)
-    - [Collection](#Collection)
-  - [API](#API) Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
-    - [Document](#Document)
-    - [Collection](#Collection)
-  - [API](#API)
 
 # Firestore MobX
 
