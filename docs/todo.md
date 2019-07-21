@@ -1,10 +1,12 @@
 # TODO version 1.0
 
+## Bugs
+
+- Is there a clash between observable collections when different queries are used on the same collection?
+
 ## Must Have
 
-- Figure out what to do with refs of sub-collections. Possibly remove restrictions.
-- Limit document ref changes to same collection, otherwise T doesn't make any
-  sense anymore.
+- Allow collection to switch between same sub-collections.
 - Add tests
 
 ## Should Have
