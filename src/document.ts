@@ -21,13 +21,13 @@ export interface Document<T> {
 function isDocumentReference<T>(
   source: SourceType<T>
 ): source is firestore.DocumentReference {
-  return (source as firestore.DocumentReference).path !== undefined;
+  return (source as firestore.DocumentReference).set !== undefined;
 }
 
 function isCollectionReference<T>(
   source: SourceType<T>
 ): source is firestore.CollectionReference {
-  return (source as firestore.CollectionReference).id !== undefined;
+  return (source as firestore.CollectionReference).doc !== undefined;
 }
 
 function getPathFromCollectionRef(
@@ -67,11 +67,15 @@ export class ObservableDocument<T extends object> {
     if (isCollectionReference<T>(source)) {
       this._collectionRef = source;
       this._path = getPathFromCollectionRef(source);
+      this.logDebug("Constructor from collection reference");
+
       runInAction(() => this.updateListeners(true));
     } else if (isDocumentReference<T>(source)) {
       this._ref = source;
       this._collectionRef = source.parent;
       this._path = source.path;
+      this.logDebug("Constructor from document reference");
+
       runInAction(() => this.updateListeners(true));
     } else {
       /**
@@ -81,6 +85,7 @@ export class ObservableDocument<T extends object> {
       this._ref = source.ref;
       this._collectionRef = source.ref.parent;
       this._path = source.ref.path;
+      this.logDebug("Constructor from document");
 
       runInAction(() => {
         this._exists = true;
