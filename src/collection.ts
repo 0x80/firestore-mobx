@@ -181,6 +181,23 @@ export class ObservableCollection<T extends object> {
     this.logDebug("Set query");
 
     const query = queryFn ? queryFn(this._ref) : undefined;
+
+    /**
+     * If we set a query that matches the currently active query this would
+     * be a no-op.
+     */
+    if (query && this._query && query.isEqual(this._query)) {
+      return;
+    }
+
+    /**
+     * If we clear the query but there was none to start with this would be
+     * a no-op.
+     */
+    if (!query && !this._query) {
+      return;
+    }
+
     const hasQuery = !!query;
     const wasListening = !!this.onSnapshotUnsubscribeFn;
 
