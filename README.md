@@ -6,21 +6,11 @@
     - [Document](#Document)
     - [Collection](#Collection)
   - [API](#API)
-    Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
-    - [Document](#Document)
-    - [Collection](#Collection)
-  - [API](#API) Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
-    - [Document](#Document)
-    - [Collection](#Collection)
-  - [API](#API) Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
-    - [Document](#Document)
-    - [Collection](#Collection)
-  - [API](#API)
 
 # Firestore MobX
 
-**WARNING** Do not use this yet. There are still some fundamental issues to be
-solved and breaking API changes are likely to happen at any time.
+**WARNING** This library is very new. There might still be some fundamental
+issues. Until the 1.0 release do not expect this to be suitable for production.
 
 This library was inspired by
 [Firestorter](https://github.com/IjzerenHein/firestorter). Read the [migration
@@ -32,7 +22,7 @@ React-Native and Node.js.
 
 **NOTE** This library is based on my personal experience using Firestorter. If
 there are any features that you miss and deem essential, please let me know. It
-is well possible that I have overlooked some valid use-cases.
+is possible that I have overlooked some valid use-cases.
 
 ## Features
 
@@ -78,17 +68,16 @@ offer strong typing some restrictions are enforced.
    dynamically, since both sub-collections would still reference the same type
    of documents.
 
-2. A collection without a query produces no documents. Retrieving all documents
-   from a collection is not typically something you would do in a client-side
-   application. By placing this restriction on collections it not only
-   simplifies the logic but we avoid fetching a large collection by
-   accident.
+2. A collection without a query produces no documents. The alternative would be
+   to fetch all documents, but this is not typically something you would want to
+   do in a client-side application. By placing this restriction on collections
+   it not only simplifies the internal logic but we avoid fetching a large
+   collection by accident.
 
-   If you have a relatively small collection, like an author's books and you
+   If you have a relatively small collection, like an author's books, and you
    want to fetch all of it, you can simply pass in a Firestore query that would
    include all documents. For example `.orderBy("publishedAt", "desc")` or
-   `.limit(999)`. You most likely want to apply some sort of ordering
-   anyway.
+   `.limit(999)`. You most likely want to apply some sort of ordering anyway.
 
 ## API
 
