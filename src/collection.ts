@@ -17,12 +17,6 @@ interface Options {
 
 type QueryFunction = (ref: firestore.CollectionReference) => firestore.Query;
 
-// function isCollectionReference(
-//   source: firestore.CollectionReference | firestore.Query
-// ): source is firestore.CollectionReference {
-//   return (source as firestore.CollectionReference).id !== undefined;
-// }
-
 export class ObservableCollection<T extends object> {
   @observable private docsObservable: IObservableArray<Document<T>>;
   @observable private isLoadingObservable: IObservableValue<boolean>;
@@ -63,9 +57,7 @@ export class ObservableCollection<T extends object> {
     this.docsObservable = observable.array([]);
     this.isLoadingObservable = observable.box(false);
 
-    if (ref) {
-      runInAction(() => this.updateListeners(true));
-    }
+    runInAction(() => this.updateListeners(true));
 
     onBecomeObserved(this, "docsObservable", this.resumeUpdates);
     onBecomeUnobserved(this, "docsObservable", this.suspendUpdates);

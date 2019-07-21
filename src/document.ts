@@ -75,7 +75,8 @@ export class ObservableDocument<T extends object> {
       runInAction(() => this.updateListeners(true));
     } else {
       /**
-       * Source is type Document, passed in from an already existing snapshot
+       * Source is type Document, typically passed in from the document data of
+       * an ObservableCollection instance.
        */
       this._ref = source.ref;
       this._collectionRef = source.ref.parent;
