@@ -2,7 +2,8 @@
 
 ## Bugs
 
-- Is there a clash between observable collections when different queries are used on the same collection?
+- Is there a clash between observable collections when different queries are
+  used on the same collection?
 
 ## Must Have
 
