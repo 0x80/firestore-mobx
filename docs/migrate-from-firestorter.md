@@ -7,9 +7,9 @@ This library was inspired by
 Rutjes](https://github.com/IjzerenHein) for creating that library and
 introducing me to the concepts.
 
-After finding myself using only a small portion of the Firestorter API and
-missing strict Typescript typings, I decided to create a leaner more focussed
-alternative based on the same core idea.
+After finding myself using only a small portion of the Firestorter API and at
+the same time missing strict type definitions, I decided to create a leaner
+more focussed alternative based on the same core idea.
 
 By questioning every feature and only implementing the bare essentials I was
 able to discard a lot of the complexity and code. To give you an idea,
@@ -59,13 +59,13 @@ you decide when you need this and there is no additional overhead.
 > and return a path. This makes it very easy to change the path of a Collection
 > or Document, based on the path or even data of another Document.
 
-I have needed them and doubt they are essential, but if you disagree please let
-me know why.
+I have never needed them and doubt they are essential, but if you disagree
+please let me know so I can reconsider implementing it.
 
 ### Reactive Query Functions
 
 > When the Query Function accesses an observable, it will automatically be
 > re-evaluated whenever that observable changes.
 
-I have needed them and doubt they are essential, but if you disagree please let
-me know why.
+I have never needed them and doubt they are essential, but if you disagree
+please let me know so I can reconsider implementing it.

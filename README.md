@@ -2,7 +2,8 @@
   - [Features](#Features)
   - [Install](#Install)
   - [Usage](#Usage)
-  - [Restrictions on Dynamic Data Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
+  - [Restrictions on Dynamic Data
+    Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
     - [Document](#Document)
     - [Collection](#Collection)
   - [API](#API)
@@ -51,9 +52,8 @@ offer strong typing some restrictions are enforced.
    you use to declare the instance with. If the source would be allowed to
    switch to a different collection this type would have no practical meaning.
 
-   Also I do not think there is a need for this in a real-life application. If
-   you need to observe documents from different collections just create multiple
-   ObservableDocument instances.
+   If you need to observe documents from different collections simply create
+   multiple ObservableDocument instances.
 
 ### Collection
 
