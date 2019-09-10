@@ -15,6 +15,13 @@ interface Options {
   debug?: boolean;
 }
 
+const optionDefaults: Options = {
+  snapshotOptions: {
+    serverTimestamps: "estimate"
+  },
+  debug: false
+};
+
 type QueryFunction = (ref: firestore.CollectionReference) => firestore.Query;
 
 export class ObservableCollection<T extends object> {
@@ -28,7 +35,7 @@ export class ObservableCollection<T extends object> {
   private readyPromise?: Promise<void>;
   private readyResolveFn?: () => void;
   private onSnapshotUnsubscribeFn?: () => void;
-  private options: Options = {};
+  private options: Options = optionDefaults;
 
   public constructor(
     ref: firestore.CollectionReference,
@@ -48,7 +55,7 @@ export class ObservableCollection<T extends object> {
     }
 
     if (options) {
-      this.options = options;
+      this.options = { ...optionDefaults, ...options };
       this.isDebugEnabled = options.debug || false;
     }
 

@@ -12,6 +12,13 @@ interface Options {
   debug?: boolean;
 }
 
+const optionDefaults: Options = {
+  snapshotOptions: {
+    serverTimestamps: "estimate"
+  },
+  debug: false
+};
+
 export interface Document<T> {
   id: string;
   data: T;
@@ -53,14 +60,14 @@ export class ObservableDocument<T extends object> {
   private readyPromise?: Promise<void>;
   private readyResolveFn?: () => void;
   private onSnapshotUnsubscribeFn?: () => void;
-  private options: Options = {};
+  private options: Options = optionDefaults;
 
   public constructor(source: SourceType<T>, options?: Options) {
     this.dataObservable = observable.box();
     this.isLoadingObservable = observable.box(false);
 
     if (options) {
-      this.options = options;
+      this.options = { ...optionDefaults, ...options };
       this.isDebugEnabled = options.debug || false;
     }
 
