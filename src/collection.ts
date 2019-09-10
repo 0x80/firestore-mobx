@@ -11,14 +11,12 @@ import { Document } from "./document";
 
 interface Options {
   query?: ((ref: firestore.CollectionReference) => firestore.Query) | undefined;
-  snapshotOptions?: firestore.SnapshotOptions;
+  serverTimestamps?: "estimate" | "previous" | "none";
   debug?: boolean;
 }
 
 const optionDefaults: Options = {
-  snapshotOptions: {
-    serverTimestamps: "estimate"
-  },
+  serverTimestamps: "estimate",
   debug: false
 };
 
@@ -137,7 +135,9 @@ export class ObservableCollection<T extends object> {
         snapshot.docs.map(doc => ({
           id: doc.id,
           ref: doc.ref,
-          data: doc.data(this.options.snapshotOptions) as T
+          data: doc.data({
+            serverTimestamps: this.options.serverTimestamps
+          }) as T
         }))
       );
 

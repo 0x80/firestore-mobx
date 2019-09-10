@@ -8,14 +8,12 @@ import {
 import { firestore } from "firebase";
 
 interface Options {
-  snapshotOptions?: firestore.SnapshotOptions;
+  serverTimestamps?: "estimate" | "previous" | "none";
   debug?: boolean;
 }
 
 const optionDefaults: Options = {
-  snapshotOptions: {
-    serverTimestamps: "estimate"
-  },
+  serverTimestamps: "estimate",
   debug: false
 };
 
@@ -204,7 +202,11 @@ export class ObservableDocument<T extends object> {
     runInAction(() => {
       this._exists = exists;
       this.dataObservable.set(
-        exists ? (snapshot.data(this.options.snapshotOptions) as T) : undefined
+        exists
+          ? (snapshot.data({
+              serverTimestamps: this.options.serverTimestamps
+            }) as T)
+          : undefined
       );
       this.isLoadingObservable.set(false);
       this.changeReady(true);
