@@ -30,7 +30,7 @@ export class ObservableCollection<T extends object> {
   private _query?: firestore.Query;
   private _path?: string;
   private isDebugEnabled = false;
-  private readyPromise?: Promise<void>;
+  private readyPromise = Promise.resolve();
   private readyResolveFn?: () => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
@@ -61,8 +61,6 @@ export class ObservableCollection<T extends object> {
 
     this.docsObservable = observable.array([]);
     this.isLoadingObservable = observable.box(false);
-
-    runInAction(() => this.updateListeners(true));
 
     onBecomeObserved(this, "docsObservable", this.resumeUpdates);
     onBecomeUnobserved(this, "docsObservable", this.suspendUpdates);
@@ -97,8 +95,31 @@ export class ObservableCollection<T extends object> {
   }
 
   public ready(): Promise<void> {
-    this.readyPromise = this.readyPromise || Promise.resolve();
+    const isListening = !!this.onSnapshotUnsubscribeFn;
+
+    if (!isListening) {
+      /**
+       * If the client is calling ready() but document is not being observed /
+       * no listeners are set up, we treat ready() as a one time fetch request,
+       * so data is available after awaiting the promise.
+       */
+      this.fetchOnce();
+    }
+
     return this.readyPromise;
+  }
+
+  private fetchOnce() {
+    if (!this._ref) {
+      throw Error("Can not fetch data on document with undefined ref");
+    }
+
+    /**
+     * Simply pass the snapshot from the promise to the handler function which
+     * will then resolve the ready promise just like the snapshot from a
+     * listener would.
+     */
+    this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
   }
 
   private resumeUpdates = () => {
@@ -120,7 +141,13 @@ export class ObservableCollection<T extends object> {
         this.readyResolveFn = undefined;
         readyResolve();
       }
-    } else if (!this.readyResolveFn) {
+    } else {
+      this.initReadyResolver();
+    }
+  }
+
+  private initReadyResolver() {
+    if (!this.readyResolveFn) {
       this.readyPromise = new Promise(resolve => {
         this.readyResolveFn = resolve;
       });
@@ -167,15 +194,16 @@ export class ObservableCollection<T extends object> {
       return;
     }
 
-    const wasListening = !!this.onSnapshotUnsubscribeFn;
+    const isListening = !!this.onSnapshotUnsubscribeFn;
 
-    if (!shouldListen && wasListening) {
+    if (!shouldListen && isListening) {
       this.logDebug("Stop listening");
+
       this.unsubscribeListeners();
-    } else if (shouldListen && !wasListening) {
+    } else if (shouldListen && !isListening) {
       this.logDebug("Start listening");
-      this.changeReady(false);
-      this.isLoadingObservable.set(true);
+
+      this.changeLoadingState(true);
 
       this.onSnapshotUnsubscribeFn = this._query.onSnapshot(
         snapshot => this.handleSnapshot(snapshot),
@@ -206,22 +234,33 @@ export class ObservableCollection<T extends object> {
     }
 
     const hasQuery = !!query;
-    const wasListening = !!this.onSnapshotUnsubscribeFn;
+    const isListening = !!this.onSnapshotUnsubscribeFn;
 
     this._query = query;
 
-    if (wasListening) {
+    if (isListening) {
       this.unsubscribeListeners();
     }
 
+    const wasListening = isListening;
+
     if (!hasQuery) {
       this.docsObservable.replace([]);
-      this.isLoadingObservable.set(false);
-      this.changeReady(true);
+      this.changeLoadingState(false);
     } else {
-      this.isLoadingObservable.set(true);
-      this.changeReady(false);
-      this.updateListeners(true);
+      this.changeLoadingState(true);
+      if (wasListening) {
+        /**
+         * Only attach listeners again if we were previously listening, because
+         * initiating listeners should be done on becoming observed.
+         */
+        this.updateListeners(true);
+      }
     }
+  }
+
+  private changeLoadingState(isLoading: boolean) {
+    this.changeReady(!isLoading);
+    this.isLoadingObservable.set(isLoading);
   }
 }

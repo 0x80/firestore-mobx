@@ -55,7 +55,7 @@ export class ObservableDocument<T extends object> {
   private isDebugEnabled = false;
   private _path?: string;
   private _exists = false;
-  private readyPromise?: Promise<void>;
+  private readyPromise = Promise.resolve();
   private readyResolveFn?: () => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
@@ -73,15 +73,13 @@ export class ObservableDocument<T extends object> {
       this._collectionRef = source;
       this._path = getPathFromCollectionRef(source);
       this.logDebug("Constructor from collection reference");
-
-      runInAction(() => this.updateListeners(true));
+      this.initReadyResolver();
     } else if (isDocumentReference<T>(source)) {
       this._ref = source;
       this._collectionRef = source.parent;
       this._path = source.path;
       this.logDebug("Constructor from document reference");
-
-      runInAction(() => this.updateListeners(true));
+      this.initReadyResolver();
     } else {
       /**
        * Source is type Document, typically passed in from the document data of
@@ -92,12 +90,9 @@ export class ObservableDocument<T extends object> {
       this._path = source.ref.path;
       this.logDebug("Constructor from document");
 
-      runInAction(() => {
-        this._exists = true;
-        this.dataObservable.set(source.data);
-        this.changeReady(true);
-        this.updateListeners(true, true);
-      });
+      this._exists = true;
+      this.dataObservable.set(source.data);
+      this.changeLoadingState(false);
     }
 
     onBecomeObserved(this, "dataObservable", this.resumeUpdates);
@@ -164,8 +159,31 @@ export class ObservableDocument<T extends object> {
   }
 
   public ready(): Promise<void> {
-    this.readyPromise = this.readyPromise || Promise.resolve();
+    const isListening = !!this.onSnapshotUnsubscribeFn;
+
+    if (!isListening) {
+      /**
+       * If the client is calling ready() but document is not being observed /
+       * no listeners are set up, we treat ready() as a one time fetch request,
+       * so data is available after awaiting the promise.
+       */
+      this.fetchOnce();
+    }
+
     return this.readyPromise;
+  }
+
+  private fetchOnce() {
+    if (!this._ref) {
+      throw Error("Can not fetch data on document with undefined ref");
+    }
+
+    /**
+     * Simply pass the snapshot from the promise to the handler function which
+     * will then resolve the ready promise just like the snapshot from a
+     * listener would.
+     */
+    this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
   }
 
   private resumeUpdates = () => {
@@ -187,7 +205,16 @@ export class ObservableDocument<T extends object> {
         this.readyResolveFn = undefined;
         readyResolve();
       }
-    } else if (!this.readyResolveFn) {
+    } else {
+      /**
+       * Set up a new resolver for when ready moves from false to true
+       */
+      this.initReadyResolver();
+    }
+  }
+
+  private initReadyResolver() {
+    if (!this.readyResolveFn) {
       this.readyPromise = new Promise(resolve => {
         this.readyResolveFn = resolve;
       });
@@ -195,9 +222,14 @@ export class ObservableDocument<T extends object> {
   }
 
   private handleSnapshot(snapshot: firestore.DocumentSnapshot) {
-    this.logDebug("handleSnapshot");
-
     const exists = snapshot.exists;
+    this.logDebug(
+      `handleSnapshot, exists: ${exists}, data: ${JSON.stringify(
+        snapshot.data({
+          serverTimestamps: this.options.serverTimestamps
+        })
+      )}`
+    );
 
     runInAction(() => {
       this._exists = exists;
@@ -228,9 +260,9 @@ export class ObservableDocument<T extends object> {
     this._path = newPath;
 
     const hasSource = !!newRef;
-    const wasListening = !!this.onSnapshotUnsubscribeFn;
+    const isListening = !!this.onSnapshotUnsubscribeFn;
 
-    if (wasListening) {
+    if (isListening) {
       this.unsubscribeListeners();
     }
 
@@ -257,17 +289,18 @@ export class ObservableDocument<T extends object> {
     }
   }
 
-  private updateListeners(shouldListen: boolean, hasInitialData?: boolean) {
+  private updateListeners(shouldListen: boolean) {
     if (!this._ref) {
       return;
     }
 
-    const wasListening = !!this.onSnapshotUnsubscribeFn;
+    const isListening = !!this.onSnapshotUnsubscribeFn;
 
-    if (!shouldListen && wasListening) {
+    if (!shouldListen && isListening) {
       this.logDebug("Stop listening");
+
       this.unsubscribeListeners();
-    } else if (shouldListen && !wasListening) {
+    } else if (shouldListen && !isListening) {
       this.logDebug("Start listening");
 
       this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
@@ -275,10 +308,14 @@ export class ObservableDocument<T extends object> {
         err => this.onSnapshotError(err)
       );
 
-      if (!hasInitialData) {
-        this.changeReady(false);
-        this.isLoadingObservable.set(true);
-      }
+      this.changeLoadingState(true);
+    } else {
+      this.logDebug("Ignore update listeners");
     }
+  }
+
+  private changeLoadingState(isLoading: boolean) {
+    this.changeReady(!isLoading);
+    this.isLoadingObservable.set(isLoading);
   }
 }
