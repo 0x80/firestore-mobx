@@ -34,6 +34,7 @@ export class ObservableCollection<T extends object> {
   private readyResolveFn?: () => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
+  private isObserved = false;
 
   public constructor(
     ref: firestore.CollectionReference,
@@ -64,6 +65,10 @@ export class ObservableCollection<T extends object> {
 
     onBecomeObserved(this, "docsObservable", this.resumeUpdates);
     onBecomeUnobserved(this, "docsObservable", this.suspendUpdates);
+
+    if (ref) {
+      this.changeLoadingState(true);
+    }
   }
 
   public get docs() {
@@ -109,31 +114,6 @@ export class ObservableCollection<T extends object> {
     return this.readyPromise;
   }
 
-  private fetchOnce() {
-    if (!this._ref) {
-      throw Error("Can not fetch data on document with undefined ref");
-    }
-
-    /**
-     * Simply pass the snapshot from the promise to the handler function which
-     * will then resolve the ready promise just like the snapshot from a
-     * listener would.
-     */
-    this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
-  }
-
-  private resumeUpdates = () => {
-    this.logDebug("Resume updates");
-
-    runInAction(() => this.updateListeners(true));
-  };
-
-  private suspendUpdates = () => {
-    this.logDebug("Suspend updates");
-
-    runInAction(() => this.updateListeners(false));
-  };
-
   private changeReady(isReady: boolean) {
     if (isReady) {
       const readyResolve = this.readyResolveFn;
@@ -154,6 +134,31 @@ export class ObservableCollection<T extends object> {
     }
   }
 
+  private fetchOnce() {
+    if (!this._ref) {
+      throw Error("Can not fetch data on document with undefined ref");
+    }
+
+    /**
+     * Simply pass the snapshot from the promise to the handler function which
+     * will then resolve the ready promise just like the snapshot from a
+     * listener would.
+     */
+    this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
+  }
+
+  private resumeUpdates = () => {
+    this.logDebug("Resume updates");
+    this.isObserved = true;
+    this.updateListeners(true);
+  };
+
+  private suspendUpdates = () => {
+    this.logDebug("Suspend updates");
+    this.isObserved = false;
+    this.updateListeners(false);
+  };
+
   private handleSnapshot(snapshot: firestore.QuerySnapshot) {
     this.logDebug(`handleSnapshot, docs.length: ${snapshot.docs.length}`);
 
@@ -168,8 +173,7 @@ export class ObservableCollection<T extends object> {
         }))
       );
 
-      this.isLoadingObservable.set(false);
-      this.changeReady(true);
+      this.changeLoadingState(false);
     });
   }
 
@@ -177,10 +181,46 @@ export class ObservableCollection<T extends object> {
     throw new Error(`${this.path} onSnapshotError: ${err.message}`);
   }
 
-  private unsubscribeListeners() {
-    this.logDebug("Unsubscribe listeners");
-    this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
-    this.onSnapshotUnsubscribeFn = undefined;
+  public setQuery(queryFn?: QueryFunction) {
+    this.logDebug("Set query");
+
+    const query = queryFn ? queryFn(this._ref) : undefined;
+
+    /**
+     * If we set a query that matches the currently active query it would be a
+     * no-op.
+     */
+    if (query && this._query && query.isEqual(this._query)) {
+      return;
+    }
+
+    /**
+     * If we clear the query but there was none to start with it would be a
+     * no-op.
+     */
+    if (!query && !this._query) {
+      return;
+    }
+
+    const hasQuery = !!query;
+    this._query = query;
+
+    if (!hasQuery) {
+      if (this.isObserved) {
+        this.logDebug("Set query -> clear listeners");
+        this.updateListeners(false);
+      }
+
+      this.docsObservable.replace([]);
+      this.changeLoadingState(false);
+    } else {
+      if (this.isObserved) {
+        this.logDebug("Set query -> update listeners");
+        this.updateListeners(true);
+      }
+
+      this.changeLoadingState(true);
+    }
   }
 
   private logDebug(message: string) {
@@ -196,14 +236,14 @@ export class ObservableCollection<T extends object> {
 
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
-    if (!shouldListen && isListening) {
+    if (isListening) {
       this.logDebug("Stop listening");
 
       this.unsubscribeListeners();
-    } else if (shouldListen && !isListening) {
-      this.logDebug("Start listening");
+    }
 
-      this.changeLoadingState(true);
+    if (shouldListen) {
+      this.logDebug("Start listening");
 
       this.onSnapshotUnsubscribeFn = this._query.onSnapshot(
         snapshot => this.handleSnapshot(snapshot),
@@ -212,51 +252,10 @@ export class ObservableCollection<T extends object> {
     }
   }
 
-  public setQuery(queryFn?: QueryFunction) {
-    this.logDebug("Set query");
-
-    const query = queryFn ? queryFn(this._ref) : undefined;
-
-    /**
-     * If we set a query that matches the currently active query this would
-     * be a no-op.
-     */
-    if (query && this._query && query.isEqual(this._query)) {
-      return;
-    }
-
-    /**
-     * If we clear the query but there was none to start with this would be
-     * a no-op.
-     */
-    if (!query && !this._query) {
-      return;
-    }
-
-    const hasQuery = !!query;
-    const isListening = !!this.onSnapshotUnsubscribeFn;
-
-    this._query = query;
-
-    if (isListening) {
-      this.unsubscribeListeners();
-    }
-
-    const wasListening = isListening;
-
-    if (!hasQuery) {
-      this.docsObservable.replace([]);
-      this.changeLoadingState(false);
-    } else {
-      this.changeLoadingState(true);
-      if (wasListening) {
-        /**
-         * Only attach listeners again if we were previously listening, because
-         * initiating listeners should be done on becoming observed.
-         */
-        this.updateListeners(true);
-      }
-    }
+  private unsubscribeListeners() {
+    this.logDebug("Unsubscribe listeners");
+    this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
+    this.onSnapshotUnsubscribeFn = undefined;
   }
 
   private changeLoadingState(isLoading: boolean) {
