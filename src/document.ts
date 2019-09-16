@@ -106,6 +106,7 @@ export class ObservableDocument<T extends object> {
     return this._ref ? this._ref.id : undefined;
   }
 
+  // @TODO rename to changeDocument? more explicit
   public set id(documentId: string | undefined) {
     if (this.id === documentId) {
       return;
@@ -118,7 +119,7 @@ export class ObservableDocument<T extends object> {
     return this.dataObservable.get();
   }
 
-  public get doc(): Document<T> | undefined {
+  public get document(): Document<T> | undefined {
     if (!this._ref || !this._exists || this.isLoading) return;
 
     return {
