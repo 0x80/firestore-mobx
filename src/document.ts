@@ -38,7 +38,7 @@ function isCollectionReference<T>(
 function getPathFromCollectionRef(
   collectionRef: firestore.CollectionReference
 ) {
-  return `${collectionRef.id}/__no_document_id`;
+  return `${collectionRef.path}/__no_document_id`;
 }
 
 type SourceType<T> =
@@ -62,7 +62,7 @@ export class ObservableDocument<T extends object> {
   private isObserved = false;
 
   public constructor(source: SourceType<T>, options?: Options) {
-    this.dataObservable = observable.box();
+    this.dataObservable = observable.box(undefined);
     this.isLoadingObservable = observable.box(false);
 
     if (options) {
@@ -108,11 +108,7 @@ export class ObservableDocument<T extends object> {
 
   // @TODO rename to changeDocument? more explicit
   public set id(documentId: string | undefined) {
-    if (this.id === documentId) {
-      return;
-    }
-
-    runInAction(() => this.changeDocumentId(documentId));
+    runInAction(() => this.changeSource(documentId));
   }
 
   public get data() {
@@ -175,6 +171,10 @@ export class ObservableDocument<T extends object> {
     }
 
     return this.readyPromise;
+  }
+
+  public get hasData() {
+    return this._exists;
   }
 
   private changeReady(isReady: boolean) {
@@ -253,7 +253,9 @@ export class ObservableDocument<T extends object> {
       //   }) as T);
       // }
 
-      this.changeLoadingState(false);
+      if (this.isLoading) {
+        this.changeLoadingState(false);
+      }
     });
   }
 
@@ -261,7 +263,11 @@ export class ObservableDocument<T extends object> {
     throw new Error(`${this.path} onSnapshotError: ${err.message}`);
   }
 
-  private changeDocumentId(documentId?: string) {
+  private changeSource(documentId?: string) {
+    if (this.id === documentId) {
+      return;
+    }
+
     this.logDebug("Change document");
     const newRef = documentId ? this._collectionRef.doc(documentId) : undefined;
     const newPath = newRef
@@ -328,6 +334,13 @@ export class ObservableDocument<T extends object> {
   }
 
   private changeLoadingState(isLoading: boolean) {
+    const wasLoading = this.isLoading;
+    if (wasLoading === isLoading) {
+      this.logDebug(`Ignore change loading state: ${isLoading}`);
+      return;
+    }
+
+    this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
     this.isLoadingObservable.set(isLoading);
   }
