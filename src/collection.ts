@@ -10,7 +10,6 @@ import { firestore } from "firebase";
 import { Document } from "./document";
 
 interface Options {
-  query?: ((ref: firestore.CollectionReference) => firestore.Query) | undefined;
   serverTimestamps?: "estimate" | "previous" | "none";
   debug?: boolean;
 }
@@ -20,15 +19,22 @@ const optionDefaults: Options = {
   debug: false
 };
 
-type QueryFunction = (ref: firestore.CollectionReference) => firestore.Query;
+type QueryCreatorFn = (ref: firestore.CollectionReference) => firestore.Query;
+
+function hasReference(
+  ref?: firestore.CollectionReference
+): ref is firestore.CollectionReference {
+  return !!ref;
+}
 
 export class ObservableCollection<T extends object> {
   @observable private docsObservable: IObservableArray<Document<T>>;
   @observable private isLoadingObservable: IObservableValue<boolean>;
 
-  private _ref: firestore.CollectionReference;
+  private _ref?: firestore.CollectionReference;
   private _query?: firestore.Query;
   private _path?: string;
+  private queryCreatorFn?: QueryCreatorFn;
   private isDebugEnabled = false;
   private readyPromise = Promise.resolve();
   private readyResolveFn?: () => void;
@@ -37,20 +43,27 @@ export class ObservableCollection<T extends object> {
   private isObserved = false;
 
   public constructor(
-    ref: firestore.CollectionReference,
-    queryFn?: QueryFunction,
+    /**
+     * Ref is optional because for sub-collections you do not know the full path
+     * in advance. Pass undefined if you want to supply the other parameters
+     */
+    ref?: firestore.CollectionReference,
+    queryCreatorFn?: QueryCreatorFn,
     options?: Options
   ) {
     /**
-     * I wish it was possible to extract the ref from a Query object, because
-     * then we could make a single source parameter
+     * NOTE: I wish it was possible to extract the ref from a Query object,
+     * because then we could make a single source parameter
      * firestore.CollectionReference | firestore.Query
      */
-    this._ref = ref;
-    this._path = ref.path;
+    if (hasReference(ref)) {
+      this._ref = ref;
+      this._path = ref.path;
+    }
 
-    if (queryFn) {
-      this._query = queryFn(ref);
+    if (queryCreatorFn) {
+      this.queryCreatorFn = queryCreatorFn;
+      this._query = hasReference(ref) ? queryCreatorFn(ref) : undefined;
     }
 
     if (options) {
@@ -66,7 +79,11 @@ export class ObservableCollection<T extends object> {
     onBecomeObserved(this, "docsObservable", this.resumeUpdates);
     onBecomeUnobserved(this, "docsObservable", this.suspendUpdates);
 
-    if (ref) {
+    /**
+     * Without a query we are not going to fetch anything from the collection.
+     * This is by design, see README
+     */
+    if (hasReference(ref) && queryCreatorFn) {
       this.changeLoadingState(true);
     }
   }
@@ -91,11 +108,57 @@ export class ObservableCollection<T extends object> {
     return this._ref;
   }
 
+  public set ref(newRef: firestore.CollectionReference | undefined) {
+    // runInAction(() => this.changeSource(newRef));
+    this.changeSource(newRef);
+  }
+
+  private changeSource(newRef?: firestore.CollectionReference) {
+    if (!this._ref && !newRef) {
+      this.logDebug("Ignore change source");
+      return;
+    }
+
+    if (this._ref && newRef && this._ref.isEqual(newRef)) {
+      this.logDebug("Ignore change source");
+      return;
+    }
+
+    this.logDebug(`Change source`);
+
+    this._ref = newRef;
+    this._path = newRef ? newRef.path : undefined;
+
+    if (hasReference(newRef)) {
+      if (this.queryCreatorFn) {
+        this._query = this.queryCreatorFn(newRef);
+      }
+
+      if (this.isObserved) {
+        this.logDebug("Change collection -> update listeners");
+        this.updateListeners(true);
+      }
+
+      this.changeLoadingState(true);
+    } else {
+      if (this.isObserved) {
+        this.logDebug("Change collection -> clear listeners");
+        this.updateListeners(false);
+      }
+
+      this.docsObservable.replace([]);
+      this.changeLoadingState(false);
+    }
+  }
+
   public get query() {
     return this._query;
   }
 
   public async add(data: T) {
+    if (!hasReference(this._ref)) {
+      throw new Error(`Can not add a document to a collection that has no ref`);
+    }
     return this._ref.add(data);
   }
 
@@ -139,6 +202,8 @@ export class ObservableCollection<T extends object> {
       throw Error("Can not fetch data on document with undefined ref");
     }
 
+    console.log("Fetch once");
+
     /**
      * Simply pass the snapshot from the promise to the handler function which
      * will then resolve the ready promise just like the snapshot from a
@@ -181,16 +246,22 @@ export class ObservableCollection<T extends object> {
     throw new Error(`${this.path} onSnapshotError: ${err.message}`);
   }
 
-  public setQuery(queryFn?: QueryFunction) {
+  public setQuery(queryCreatorFn?: QueryCreatorFn) {
     this.logDebug("Set query");
 
-    const query = queryFn ? queryFn(this._ref) : undefined;
+    this.queryCreatorFn = queryCreatorFn;
+
+    const newQuery = queryCreatorFn
+      ? hasReference(this._ref)
+        ? queryCreatorFn(this._ref)
+        : undefined
+      : undefined;
 
     /**
      * If we set a query that matches the currently active query it would be a
      * no-op.
      */
-    if (query && this._query && query.isEqual(this._query)) {
+    if (newQuery && this._query && newQuery.isEqual(this._query)) {
       return;
     }
 
@@ -198,12 +269,34 @@ export class ObservableCollection<T extends object> {
      * If we clear the query but there was none to start with it would be a
      * no-op.
      */
-    if (!query && !this._query) {
+    if (!newQuery && !this._query) {
       return;
     }
 
-    const hasQuery = !!query;
-    this._query = query;
+    const hasQuery = !!newQuery;
+
+    // if (!hasReference(this._ref){
+
+    // }else {
+
+    // /**
+    //  * If we set a query that matches the currently active query it would be a
+    //  * no-op.
+    //  */
+    // if (hasQuery && this._query && newQuery.isEqual(this._query)) {
+    //   return;
+    // }
+
+    // /**
+    //  * If we clear the query but there was none to start with it would be a
+    //  * no-op.
+    //  */
+    // if (!query && !this._query) {
+    //   return;
+    // }
+
+    // const hasQuery = !!query;
+    this._query = newQuery;
 
     if (!hasQuery) {
       if (this.isObserved) {
