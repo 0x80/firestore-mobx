@@ -53,13 +53,16 @@ export class ObservableDocument<T extends object> {
   private _ref?: firestore.DocumentReference;
   private _collectionRef: firestore.CollectionReference;
   private isDebugEnabled = false;
-  private _path?: string;
+  // private _path?: string;
   private _exists = false;
   private readyPromise = Promise.resolve();
   private readyResolveFn?: () => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
   private isObserved = false;
+  private firedInitialFetch = false;
+  private sourceId?: string;
+  private listenerSourceId?: string;
 
   public constructor(source: SourceType<T>, options?: Options) {
     this.dataObservable = observable.box(undefined);
@@ -72,12 +75,12 @@ export class ObservableDocument<T extends object> {
 
     if (isCollectionReference<T>(source)) {
       this._collectionRef = source;
-      this._path = getPathFromCollectionRef(source);
+      this.sourceId = source.path;
       this.logDebug("Constructor from collection reference");
     } else if (isDocumentReference<T>(source)) {
       this._ref = source;
       this._collectionRef = source.parent;
-      this._path = source.path;
+      this.sourceId = source.path;
       this.logDebug("Constructor from document reference");
       /**
        * In this case we have data to wait on from the start. So initialize the
@@ -91,7 +94,7 @@ export class ObservableDocument<T extends object> {
        */
       this._ref = source.ref;
       this._collectionRef = source.ref.parent;
-      this._path = source.ref.path;
+      this.sourceId = source.ref.path;
       this.logDebug("Constructor from document");
 
       this._exists = true;
@@ -129,12 +132,12 @@ export class ObservableDocument<T extends object> {
     return this.isLoadingObservable.get();
   }
 
-  public get path() {
-    return this._path;
-  }
-
   public get ref() {
     return this._ref;
+  }
+
+  public get path() {
+    return this._ref ? this._ref.path : undefined;
   }
 
   public update(fields: firestore.UpdateData): Promise<void> {
@@ -167,7 +170,7 @@ export class ObservableDocument<T extends object> {
        * no listeners are set up, we treat ready() as a one time fetch request,
        * so data is available after awaiting the promise.
        */
-      this.fetchOnce();
+      this.fetchInitialData();
     }
 
     return this.readyPromise;
@@ -197,15 +200,19 @@ export class ObservableDocument<T extends object> {
     }
   }
 
-  private fetchOnce() {
-    if (!this._ref) {
-      // throw Error("Can not fetch data on document with undefined ref");
-
-      console.error("Can not fetch data on document with undefined ref");
-
-      this.changeLoadingState(false);
+  private fetchInitialData() {
+    if (this.firedInitialFetch) {
+      this.logDebug("Ignore fetch initial data");
       return;
     }
+
+    if (!this._ref) {
+      this.changeLoadingState(false);
+
+      throw Error("Can not fetch data on document with undefined ref");
+    }
+
+    this.logDebug("Fetch initial data");
 
     /**
      * Simply pass the snapshot from the promise to the handler function which
@@ -213,6 +220,7 @@ export class ObservableDocument<T extends object> {
      * listener would.
      */
     this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
+    this.firedInitialFetch = true;
   }
 
   private resumeUpdates = () => {
@@ -229,13 +237,15 @@ export class ObservableDocument<T extends object> {
 
   private handleSnapshot(snapshot: firestore.DocumentSnapshot) {
     const exists = snapshot.exists;
-    this.logDebug(
-      `handleSnapshot, exists: ${exists}, data: ${JSON.stringify(
-        snapshot.data({
-          serverTimestamps: this.options.serverTimestamps
-        })
-      )}`
-    );
+
+    this.logDebug(`handleSnapshot, exists: ${exists}`);
+    // this.logDebug(
+    //   `handleSnapshot, exists: ${exists}, data: ${JSON.stringify(
+    //     snapshot.data({
+    //       serverTimestamps: this.options.serverTimestamps
+    //     })
+    //   )}`
+    // );
 
     runInAction(() => {
       this._exists = exists;
@@ -247,15 +257,8 @@ export class ObservableDocument<T extends object> {
             }) as T)
           : undefined
       );
-      // if (exists) {
-      //   this.dataObservable.set(snapshot.data({
-      //     serverTimestamps: this.options.serverTimestamps
-      //   }) as T);
-      // }
 
-      if (this.isLoading) {
-        this.changeLoadingState(false);
-      }
+      this.changeLoadingState(false);
     });
   }
 
@@ -276,8 +279,7 @@ export class ObservableDocument<T extends object> {
 
     this.logDebug(`Switch source to ${newPath}`);
     this._ref = newRef;
-    this._path = newPath;
-
+    this.sourceId = newPath;
     const hasSource = !!newRef;
 
     if (!hasSource) {
@@ -300,7 +302,13 @@ export class ObservableDocument<T extends object> {
 
   private logDebug(message: string) {
     if (this.isDebugEnabled) {
-      console.log(`${message} (${this.path})`);
+      if (!this._ref) {
+        console.log(
+          `${message} (${getPathFromCollectionRef(this._collectionRef)})`
+        );
+      } else {
+        console.log(`${message} (${this._ref.path})`);
+      }
     }
   }
 
@@ -311,26 +319,33 @@ export class ObservableDocument<T extends object> {
 
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
-    if (isListening) {
-      this.logDebug("Stop listening");
+    if (
+      shouldListen &&
+      isListening &&
+      this.sourceId === this.listenerSourceId
+    ) {
+      this.logDebug("Ignore update listeners");
+      return;
+    }
 
-      this.unsubscribeListeners();
+    if (isListening) {
+      this.logDebug("Unsubscribe listeners");
+
+      this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
+      this.onSnapshotUnsubscribeFn = undefined;
+      this.listenerSourceId = undefined;
     }
 
     if (shouldListen) {
-      this.logDebug("Start listening");
+      this.logDebug("Subscribe listeners");
 
       this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
         snapshot => this.handleSnapshot(snapshot),
         err => this.onSnapshotError(err)
       );
-    }
-  }
 
-  private unsubscribeListeners() {
-    this.logDebug("Unsubscribe listeners");
-    this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
-    this.onSnapshotUnsubscribeFn = undefined;
+      this.listenerSourceId = this.sourceId;
+    }
   }
 
   private changeLoadingState(isLoading: boolean) {

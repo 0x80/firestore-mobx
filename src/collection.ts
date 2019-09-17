@@ -1,13 +1,12 @@
 import {
   observable,
   runInAction,
-  IObservableValue,
-  IObservableArray,
   onBecomeObserved,
   onBecomeUnobserved
 } from "mobx";
 import { firestore } from "firebase";
 import { Document } from "./document";
+import shortid from "shortid";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -28,12 +27,11 @@ function hasReference(
 }
 
 export class ObservableCollection<T extends object> {
-  @observable private docsObservable: IObservableArray<Document<T>>;
-  @observable private isLoadingObservable: IObservableValue<boolean>;
+  @observable private docsObservable = observable.array([] as Document<T>[]);
+  @observable private isLoadingObservable = observable.box(false);
 
   private _ref?: firestore.CollectionReference;
   private _query?: firestore.Query;
-  private _path?: string;
   private queryCreatorFn?: QueryCreatorFn;
   private isDebugEnabled = false;
   private readyPromise = Promise.resolve();
@@ -41,6 +39,15 @@ export class ObservableCollection<T extends object> {
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
   private isObserved = false;
+  private firedInitialFetch = false;
+  private sourceId?: string;
+  private listenerSourceId?: string;
+
+  /**
+   * @TODO maybe record a string of the query + reference, so we can figure out
+   * if the current listeners belong to that combination or we need to update
+   * them
+   */
 
   public constructor(
     /**
@@ -51,6 +58,7 @@ export class ObservableCollection<T extends object> {
     queryCreatorFn?: QueryCreatorFn,
     options?: Options
   ) {
+    this.logDebug("Constructor");
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
      * because then we could make a single source parameter
@@ -58,12 +66,12 @@ export class ObservableCollection<T extends object> {
      */
     if (hasReference(ref)) {
       this._ref = ref;
-      this._path = ref.path;
     }
 
     if (queryCreatorFn) {
       this.queryCreatorFn = queryCreatorFn;
       this._query = hasReference(ref) ? queryCreatorFn(ref) : undefined;
+      this.sourceId = shortid.generate();
     }
 
     if (options) {
@@ -71,14 +79,11 @@ export class ObservableCollection<T extends object> {
       this.isDebugEnabled = options.debug || false;
     }
 
-    this.logDebug("Constructor");
-
-    this.docsObservable = observable.array([]);
-    this.isLoadingObservable = observable.box(false);
-
     onBecomeObserved(this, "docsObservable", this.resumeUpdates);
     onBecomeUnobserved(this, "docsObservable", this.suspendUpdates);
 
+    onBecomeObserved(this, "isLoadingObservable", this.resumeUpdates);
+    onBecomeUnobserved(this, "isLoadingObservable", this.suspendUpdates);
     /**
      * Without a query we are not going to fetch anything from the collection.
      * This is by design, see README
@@ -97,11 +102,16 @@ export class ObservableCollection<T extends object> {
   }
 
   public get isLoading() {
+    /**
+     * Referencing docsObservable here makes a difference. It triggers the
+     * listeners. @TODO figure out why  / if we need this.
+     */
+    // this.docsObservable.length;
     return this.isLoadingObservable.get();
   }
 
   public get path() {
-    return this._path;
+    return this._ref ? this._ref.path : undefined;
   }
 
   public get ref() {
@@ -125,13 +135,15 @@ export class ObservableCollection<T extends object> {
     }
 
     this.logDebug(`Change source`);
-
+    this.firedInitialFetch = false;
     this._ref = newRef;
-    this._path = newRef ? newRef.path : undefined;
+    // this._path = newRef ? newRef.path : undefined;
 
     if (hasReference(newRef)) {
       if (this.queryCreatorFn) {
+        this.logDebug("Update query using new ref source");
         this._query = this.queryCreatorFn(newRef);
+        this.sourceId = shortid.generate();
       }
 
       if (this.isObserved) {
@@ -171,7 +183,7 @@ export class ObservableCollection<T extends object> {
        * no listeners are set up, we treat ready() as a one time fetch request,
        * so data is available after awaiting the promise.
        */
-      this.fetchOnce();
+      this.fetchInitialData();
     }
 
     return this.readyPromise;
@@ -197,29 +209,35 @@ export class ObservableCollection<T extends object> {
     }
   }
 
-  private fetchOnce() {
-    if (!this._ref) {
-      throw Error("Can not fetch data on document with undefined ref");
+  private fetchInitialData() {
+    if (this.firedInitialFetch) {
+      this.logDebug("Ignore fetch initial data");
+      return;
     }
 
-    console.log("Fetch once");
+    if (!this._query) {
+      throw Error("Can not fetch data on collection with undefined query");
+    }
+
+    this.logDebug("Fetch initial data");
 
     /**
      * Simply pass the snapshot from the promise to the handler function which
      * will then resolve the ready promise just like the snapshot from a
      * listener would.
      */
-    this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
+    this._query.get().then(snapshot => this.handleSnapshot(snapshot));
+    this.firedInitialFetch = true;
   }
 
   private resumeUpdates = () => {
-    this.logDebug("Resume updates");
+    this.logDebug("Becoming observed");
     this.isObserved = true;
     this.updateListeners(true);
   };
 
   private suspendUpdates = () => {
-    this.logDebug("Suspend updates");
+    this.logDebug("Becoming un-observed");
     this.isObserved = false;
     this.updateListeners(false);
   };
@@ -273,30 +291,11 @@ export class ObservableCollection<T extends object> {
       return;
     }
 
+    this.firedInitialFetch = false;
+
     const hasQuery = !!newQuery;
-
-    // if (!hasReference(this._ref){
-
-    // }else {
-
-    // /**
-    //  * If we set a query that matches the currently active query it would be a
-    //  * no-op.
-    //  */
-    // if (hasQuery && this._query && newQuery.isEqual(this._query)) {
-    //   return;
-    // }
-
-    // /**
-    //  * If we clear the query but there was none to start with it would be a
-    //  * no-op.
-    //  */
-    // if (!query && !this._query) {
-    //   return;
-    // }
-
-    // const hasQuery = !!query;
     this._query = newQuery;
+    this.sourceId = shortid.generate();
 
     if (!hasQuery) {
       if (this.isObserved) {
@@ -318,7 +317,11 @@ export class ObservableCollection<T extends object> {
 
   private logDebug(message: string) {
     if (this.isDebugEnabled) {
-      console.log(`${message} (${this.path})`);
+      if (this._ref) {
+        console.log(`${message} (${this._ref.path})`);
+      } else {
+        console.log(`${message}`);
+      }
     }
   }
 
@@ -329,29 +332,41 @@ export class ObservableCollection<T extends object> {
 
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
-    if (isListening) {
-      this.logDebug("Stop listening");
+    if (
+      shouldListen &&
+      isListening &&
+      this.sourceId === this.listenerSourceId
+    ) {
+      this.logDebug("Ignore update listeners");
+      return;
+    }
 
-      this.unsubscribeListeners();
+    if (isListening) {
+      this.logDebug("Unsubscribe listeners");
+      this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
+      this.onSnapshotUnsubscribeFn = undefined;
+      this.listenerSourceId = undefined;
     }
 
     if (shouldListen) {
-      this.logDebug("Start listening");
-
+      this.logDebug("Subscribe listeners");
       this.onSnapshotUnsubscribeFn = this._query.onSnapshot(
         snapshot => this.handleSnapshot(snapshot),
         err => this.onSnapshotError(err)
       );
+
+      this.listenerSourceId = this.sourceId;
     }
   }
 
-  private unsubscribeListeners() {
-    this.logDebug("Unsubscribe listeners");
-    this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
-    this.onSnapshotUnsubscribeFn = undefined;
-  }
-
   private changeLoadingState(isLoading: boolean) {
+    const wasLoading = this.isLoading;
+    if (wasLoading === isLoading) {
+      this.logDebug(`Ignore change loading state: ${isLoading}`);
+      return;
+    }
+
+    this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
     this.isLoadingObservable.set(isLoading);
   }
