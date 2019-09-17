@@ -164,7 +164,7 @@ export class ObservableDocument<T extends object> {
   public ready(): Promise<void> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
-    if (!isListening) {
+    if (!isListening && this._ref) {
       /**
        * If the client is calling ready() but document is not being observed /
        * no listeners are set up, we treat ready() as a one time fetch request,
@@ -201,16 +201,16 @@ export class ObservableDocument<T extends object> {
   }
 
   private fetchInitialData() {
-    if (this.firedInitialFetch) {
+    if (this.firedInitialFetch || !this._ref) {
       this.logDebug("Ignore fetch initial data");
       return;
     }
 
-    if (!this._ref) {
-      this.changeLoadingState(false);
+    // if (!this._ref) {
+    //   // this.changeLoadingState(false);
 
-      throw Error("Can not fetch data on document with undefined ref");
-    }
+    //   throw Error("Can not fetch data on document with undefined ref");
+    // }
 
     this.logDebug("Fetch initial data");
 
@@ -224,13 +224,13 @@ export class ObservableDocument<T extends object> {
   }
 
   private resumeUpdates = () => {
-    this.logDebug("Resume updates");
+    this.logDebug("Becoming observed");
     this.isObserved = true;
     this.updateListeners(true);
   };
 
   private suspendUpdates = () => {
-    this.logDebug("Suspend updates");
+    this.logDebug("Becoming un-observed");
     this.isObserved = false;
     this.updateListeners(false);
   };
