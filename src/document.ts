@@ -103,6 +103,9 @@ export class ObservableDocument<T extends object> {
 
     onBecomeObserved(this, "dataObservable", this.resumeUpdates);
     onBecomeUnobserved(this, "dataObservable", this.suspendUpdates);
+
+    onBecomeObserved(this, "isLoadingObservable", this.resumeUpdates);
+    onBecomeUnobserved(this, "isLoadingObservable", this.suspendUpdates);
   }
 
   public get id(): string | undefined {
@@ -277,7 +280,8 @@ export class ObservableDocument<T extends object> {
       ? newRef.path
       : getPathFromCollectionRef(this._collectionRef);
 
-    this.logDebug(`Switch source to ${newPath}`);
+    this.logDebug(`Change source to ${newPath}`);
+    this.firedInitialFetch = false;
     this._ref = newRef;
     this.sourceId = newPath;
     const hasSource = !!newRef;

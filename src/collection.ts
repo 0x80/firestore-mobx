@@ -134,7 +134,7 @@ export class ObservableCollection<T extends object> {
       return;
     }
 
-    this.logDebug(`Change source`);
+    this.logDebug(`Change source to ${newRef ? newRef.path : undefined}`);
     this.firedInitialFetch = false;
     this._ref = newRef;
     // this._path = newRef ? newRef.path : undefined;
