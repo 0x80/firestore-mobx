@@ -36,9 +36,9 @@ function isCollectionReference<T>(
 }
 
 function getPathFromCollectionRef(
-  collectionRef: firestore.CollectionReference
+  collectionRef?: firestore.CollectionReference
 ) {
-  return `${collectionRef.path}/__no_document_id`;
+  return collectionRef ? `${collectionRef.path}/__no_document_id` : undefined;
 }
 
 type SourceType<T> =
@@ -51,7 +51,7 @@ export class ObservableDocument<T extends object> {
   @observable private isLoadingObservable: IObservableValue<boolean>;
 
   private _ref?: firestore.DocumentReference;
-  private _collectionRef: firestore.CollectionReference;
+  private _collectionRef?: firestore.CollectionReference;
   private isDebugEnabled = false;
   // private _path?: string;
   private _exists = false;
@@ -59,12 +59,12 @@ export class ObservableDocument<T extends object> {
   private readyResolveFn?: () => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
-  private isObserved = false;
+  private observedCount = 0;
   private firedInitialFetch = false;
   private sourceId?: string;
   private listenerSourceId?: string;
 
-  public constructor(source: SourceType<T>, options?: Options) {
+  public constructor(source?: SourceType<T>, options?: Options) {
     this.dataObservable = observable.box(undefined);
     this.isLoadingObservable = observable.box(false);
 
@@ -73,7 +73,9 @@ export class ObservableDocument<T extends object> {
       this.isDebugEnabled = options.debug || false;
     }
 
-    if (isCollectionReference<T>(source)) {
+    if (!source) {
+      // do nothing?
+    } else if (isCollectionReference<T>(source)) {
       this._collectionRef = source;
       this.sourceId = source.path;
       this.logDebug("Constructor from collection reference");
@@ -114,7 +116,7 @@ export class ObservableDocument<T extends object> {
 
   // @TODO rename to changeDocument? more explicit
   public set id(documentId: string | undefined) {
-    runInAction(() => this.changeSource(documentId));
+    runInAction(() => this.changeSourceViaId(documentId));
   }
 
   public get data() {
@@ -135,8 +137,16 @@ export class ObservableDocument<T extends object> {
     return this.isLoadingObservable.get();
   }
 
+  public get isObserved() {
+    return this.observedCount > 0;
+  }
+
   public get ref() {
     return this._ref;
+  }
+
+  public set ref(ref: firestore.DocumentReference | undefined) {
+    runInAction(() => this.changeSourceViaRef(ref));
   }
 
   public get path() {
@@ -228,13 +238,13 @@ export class ObservableDocument<T extends object> {
 
   private resumeUpdates = () => {
     this.logDebug("Becoming observed");
-    this.isObserved = true;
+    this.observedCount += 1;
     this.updateListeners(true);
   };
 
   private suspendUpdates = () => {
     this.logDebug("Becoming un-observed");
-    this.isObserved = false;
+    this.observedCount -= 1;
     this.updateListeners(false);
   };
 
@@ -269,23 +279,58 @@ export class ObservableDocument<T extends object> {
     throw new Error(`${this.path} onSnapshotError: ${err.message}`);
   }
 
-  private changeSource(documentId?: string) {
+  private changeSourceViaRef(ref?: firestore.DocumentReference) {
+    const newPath = ref ? ref.path : undefined;
+    this.logDebug(`Change source via ref to ${ref ? ref.path : undefined}`);
+    this._ref = ref;
+    this.sourceId = newPath;
+    this.firedInitialFetch = false;
+
+    const hasSource = !!ref;
+
+    // @TODO make DRY
+    if (!hasSource) {
+      if (this.isObserved) {
+        this.logDebug("Change document -> clear listeners");
+        this.updateListeners(false);
+      }
+
+      this.dataObservable.set(undefined);
+      this.changeLoadingState(false);
+    } else {
+      if (this.isObserved) {
+        this.logDebug("Change document -> update listeners");
+        this.updateListeners(true);
+      }
+
+      this.changeLoadingState(true);
+    }
+  }
+
+  private changeSourceViaId(documentId?: string) {
+    if (!this._collectionRef) {
+      throw new Error(
+        `Can not change source via id if there is no known collection reference`
+      );
+    }
+
     if (this.id === documentId) {
       return;
     }
 
-    this.logDebug("Change document");
     const newRef = documentId ? this._collectionRef.doc(documentId) : undefined;
     const newPath = newRef
       ? newRef.path
       : getPathFromCollectionRef(this._collectionRef);
 
-    this.logDebug(`Change source to ${newPath}`);
-    this.firedInitialFetch = false;
+    this.logDebug(`Change source via id to ${newPath}`);
     this._ref = newRef;
     this.sourceId = newPath;
+    this.firedInitialFetch = false;
+
     const hasSource = !!newRef;
 
+    // @TODO make DRY
     if (!hasSource) {
       if (this.isObserved) {
         this.logDebug("Change document -> clear listeners");
