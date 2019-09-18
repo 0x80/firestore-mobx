@@ -27,9 +27,9 @@ is possible that I have overlooked some valid use-cases.
 
 ## Features
 
-- A minimal and un-opinionated API surface
+- Minimal API surface
 - Written in Typescript with strict typings
-- Minimal dependencies (only Firebase and MobX really)
+- Minimal dependencies
 
 ## Install
 
@@ -37,47 +37,61 @@ is possible that I have overlooked some valid use-cases.
 
 ## Usage
 
-## Restrictions on Dynamic Data Sourcing
+```ts
+import { ObservableDocument, ObservableCollection } from "firestore-mobx";
 
-Observable documents and collections are flexible because they can change their
-data source and query dynamically at any time. In order to reduce complexity and
-offer strong typing some restrictions are enforced.
+const author = new ObservableDocument<Author>(
+  firestore.doc(`authors/${authorId}`)
+);
 
-### Document
+const books = new ObservableCollection<Book>(
+  firestore.collection(`authors/${authorId}/books`),
+  ref => ref.orderBy("title", "asc")
+);
 
-1. An observable document always links to the Firestore collection passed into
-   the constructor. A document can change its id after it was created, switching
-   to a different document in Firestore, but the collection reference will never
-   change. With Typescript we get compile-time type checks based on the schema
-   you use to declare the instance with. If the source would be allowed to
-   switch to a different collection this type would have no practical meaning.
+/**
+ * Wait for the data to become available. Alternatively you can observe the
+ * author.isLoading property.
+ */
+await author.ready();
 
-   If you need to observe documents from different collections simply create
-   multiple ObservableDocument instances.
+if (!author.exists) {
+  console.error(`Failed to find document for author ${author.id}`);
+}
+/**
+ * Get the data. It will be typed on the schema that you passed to the
+ * constructor. The data can also be undefined, if the data was not loaded yet
+ * or the document did not exist.
+ */
+console.log(author.data);
 
-### Collection
+/**
+ * Switch to different collection source using a collection ref
+ */
+books.ref = firestore.collection(`authors/${differentAuthorId}/books`);
 
-1. An observable collection always links to the Firestore collection passed into
-   the constructor. The query can be changed after the object was created,
-   influencing the number of documents in the collection, but it can not switch
-   to a different collection dynamically. The motivation for this is the same as
-   restriction 1 on observable documents.
+/**
+ * Change the query of a collection by passing a new "query creator function".
+ * This function is called with the current collection ref to create a new query.
+ */
+books.setQuery = ref => ref.orderBy("publishedAt", "desc");
 
-   A slight exception to this are sub-collections; You are allowed to switch the
-   collection reference of `authors/{authorId}/books` to a different `authorId`
-   dynamically, since both sub-collections would still reference the same type
-   of documents.
+/**
+ * Wait for the data to become available. Alternatively you can observe the
+ * books.isLoading property.
+ */
+await books.ready();
 
-2. A collection without a query produces no documents. The alternative would be
-   to fetch all documents, but this is not typically something you would want to
-   do in a client-side application. By placing this restriction on collections
-   it not only simplifies the internal logic but we avoid fetching a large
-   collection by accident.
+if (books.empty) {
+  console.error(`Failed to find books for author ${author.id}`);
+}
 
-   If you have a relatively small collection, like an author's books, and you
-   want to fetch all of it, you can simply pass in a Firestore query that would
-   include all documents. For example `.orderBy("publishedAt", "desc")` or
-   `.limit(999)`. You most likely want to apply some sort of ordering anyway.
+/**
+ * Get the data. It will be typed on the schema that you passed to the
+ * constructor, wrapped in a Document type which has properties id, data, ref.
+ */
+books.docs.forEach(doc => console.log(doc.data));
+```
 
 ## API
 
