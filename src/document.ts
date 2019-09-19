@@ -237,15 +237,18 @@ export class ObservableDocument<T extends object> {
   }
 
   private resumeUpdates = () => {
-    this.logDebug("Becoming observed");
     this.observedCount += 1;
+    this.logDebug(`Becoming observed, count: ${this.observedCount}`);
     this.updateListeners(true);
   };
 
   private suspendUpdates = () => {
-    this.logDebug("Becoming un-observed");
     this.observedCount -= 1;
-    this.updateListeners(false);
+    this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
+
+    if (this.observedCount === 0) {
+      this.updateListeners(false);
+    }
   };
 
   private handleSnapshot(snapshot: firestore.DocumentSnapshot) {
