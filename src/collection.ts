@@ -45,7 +45,7 @@ export class ObservableCollection<T extends object> {
   private readyResolveFn?: () => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
-  private isObserved = false;
+  private observedCount = 0;
   private firedInitialFetch = false;
   private sourceId?: string;
   private listenerSourceId?: string;
@@ -108,6 +108,10 @@ export class ObservableCollection<T extends object> {
 
   public get isLoading() {
     return this.isLoadingObservable.get();
+  }
+
+  public get isObserved() {
+    return this.observedCount > 0;
   }
 
   public get path() {
@@ -230,15 +234,18 @@ export class ObservableCollection<T extends object> {
   }
 
   private resumeUpdates = () => {
-    this.logDebug("Becoming observed");
-    this.isObserved = true;
+    this.observedCount += 1;
+    this.logDebug(`Becoming observed, count: ${this.observedCount}`);
     this.updateListeners(true);
   };
 
   private suspendUpdates = () => {
-    this.logDebug("Becoming un-observed");
-    this.isObserved = false;
-    this.updateListeners(false);
+    this.observedCount -= 1;
+    this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
+
+    if (this.observedCount === 0) {
+      this.updateListeners(false);
+    }
   };
 
   private handleSnapshot(snapshot: firestore.QuerySnapshot) {
