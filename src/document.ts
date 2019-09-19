@@ -362,10 +362,6 @@ export class ObservableDocument<T extends object> {
   }
 
   private updateListeners(shouldListen: boolean) {
-    if (!this._ref) {
-      return;
-    }
-
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (
@@ -386,6 +382,10 @@ export class ObservableDocument<T extends object> {
     }
 
     if (shouldListen) {
+      if (!this._ref) {
+        return;
+      }
+
       this.logDebug("Subscribe listeners");
 
       this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
