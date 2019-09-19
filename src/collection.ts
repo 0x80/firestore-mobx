@@ -106,6 +106,11 @@ export class ObservableCollection<T extends object> {
     return this.docsObservable.length === 0;
   }
 
+  @computed
+  public get hasDocs() {
+    return this.docsObservable.length > 0;
+  }
+
   public get isLoading() {
     return this.isLoadingObservable.get();
   }
