@@ -1,5 +1,6 @@
 import {
   observable,
+  computed,
   runInAction,
   onBecomeObserved,
   onBecomeUnobserved
@@ -103,8 +104,9 @@ export class ObservableCollection<T extends object> {
     return this.docsObservable;
   }
 
-  public get hasDocs() {
-    return this.docsObservable.length > 0;
+  @computed
+  public get isEmpty() {
+    return this.docsObservable.length === 0;
   }
 
   public get isLoading() {
