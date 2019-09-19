@@ -21,7 +21,7 @@ interface Options {
 
 const optionDefaults: Options = {
   serverTimestamps: "estimate",
-  ignoreInitialSnapshot: true,
+  ignoreInitialSnapshot: false, // @TODO test before making default true
   debug: false
 };
 
