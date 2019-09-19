@@ -247,8 +247,6 @@ export class ObservableCollection<T extends object> {
       `handleSnapshot, ${Date.now()} docs.length: ${snapshot.docs.length}`
     );
 
-    this.logDebug(JSON.stringify(snapshot.metadata));
-
     /**
      * @TODO keep local cache of each document and only update data based on
      * the docChanges
