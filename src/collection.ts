@@ -172,7 +172,7 @@ export class ObservableCollection<T extends object> {
     return this._ref.add(data);
   }
 
-  public ready(): Promise<void> {
+  public whenReady(): Promise<void> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening) {

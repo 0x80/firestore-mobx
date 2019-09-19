@@ -174,7 +174,7 @@ export class ObservableDocument<T extends object> {
     return this._ref.delete();
   }
 
-  public ready(): Promise<void> {
+  public whenReady(): Promise<void> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening && this._ref) {
