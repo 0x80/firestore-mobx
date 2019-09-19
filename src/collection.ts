@@ -91,11 +91,8 @@ export class ObservableCollection<T extends object> {
 
     onBecomeObserved(this, "isLoadingObservable", this.resumeUpdates);
     onBecomeUnobserved(this, "isLoadingObservable", this.suspendUpdates);
-    /**
-     * Without a query we are not going to fetch anything from the collection.
-     * This is by design, see README
-     */
-    if (hasReference(ref) && queryCreatorFn) {
+
+    if (hasReference(ref)) {
       this.changeLoadingState(true);
     }
   }
@@ -139,7 +136,6 @@ export class ObservableCollection<T extends object> {
     this.logDebug(`Change source to ${newRef ? newRef.path : undefined}`);
     this.firedInitialFetch = false;
     this._ref = newRef;
-    // this._path = newRef ? newRef.path : undefined;
 
     if (hasReference(newRef)) {
       if (this.queryCreatorFn) {
@@ -213,8 +209,8 @@ export class ObservableCollection<T extends object> {
       return;
     }
 
-    if (!this._query) {
-      throw Error("Can not fetch data on collection with undefined query");
+    if (!this._ref) {
+      throw Error("Can not fetch data without a collection reference");
     }
 
     this.logDebug("Fetch initial data");
@@ -224,7 +220,12 @@ export class ObservableCollection<T extends object> {
      * will then resolve the ready promise just like the snapshot from a
      * listener would.
      */
-    this._query.get().then(snapshot => this.handleSnapshot(snapshot));
+    if (this._query) {
+      this._query.get().then(snapshot => this.handleSnapshot(snapshot));
+    } else {
+      this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
+    }
+
     this.firedInitialFetch = true;
   }
 
@@ -309,11 +310,11 @@ export class ObservableCollection<T extends object> {
 
     this.firedInitialFetch = false;
 
-    const hasQuery = !!newQuery;
+    const hasSource = !!this._ref || !!newQuery;
     this._query = newQuery;
     this.sourceId = shortid.generate();
 
-    if (!hasQuery) {
+    if (!hasSource) {
       if (this.isObserved) {
         this.logDebug("Set query -> clear listeners");
         this.updateListeners(false);
@@ -342,10 +343,6 @@ export class ObservableCollection<T extends object> {
   }
 
   private updateListeners(shouldListen: boolean) {
-    if (!this._query) {
-      return;
-    }
-
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (
@@ -366,13 +363,24 @@ export class ObservableCollection<T extends object> {
 
     if (shouldListen) {
       this.logDebug("Subscribe listeners");
-      this.onSnapshotUnsubscribeFn = this._query.onSnapshot(
-        executeFromCount(
-          snapshot => this.handleSnapshot(snapshot),
-          this.options.ignoreInitialSnapshot ? 1 : 0
-        ),
-        err => this.handleSnapshotError(err)
-      );
+
+      if (this._query) {
+        this.onSnapshotUnsubscribeFn = this._query.onSnapshot(
+          executeFromCount(
+            snapshot => this.handleSnapshot(snapshot),
+            this.options.ignoreInitialSnapshot ? 1 : 0
+          ),
+          err => this.handleSnapshotError(err)
+        );
+      } else if (this._ref) {
+        this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
+          executeFromCount(
+            snapshot => this.handleSnapshot(snapshot),
+            this.options.ignoreInitialSnapshot ? 1 : 0
+          ),
+          err => this.handleSnapshotError(err)
+        );
+      }
 
       this.listenerSourceId = this.sourceId;
     }
