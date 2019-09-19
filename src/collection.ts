@@ -165,10 +165,6 @@ export class ObservableCollection<T extends object> {
     }
   }
 
-  public get query() {
-    return this._query;
-  }
-
   public async add(data: T) {
     if (!hasReference(this._ref)) {
       throw new Error(`Can not add a document to a collection that has no ref`);
@@ -284,7 +280,7 @@ export class ObservableCollection<T extends object> {
     throw new Error(`${this.path} snapshot error: ${err.message}`);
   }
 
-  public setQuery(queryCreatorFn?: QueryCreatorFn) {
+  public set query(queryCreatorFn: QueryCreatorFn | undefined) {
     this.logDebug("Set query");
 
     this.queryCreatorFn = queryCreatorFn;
