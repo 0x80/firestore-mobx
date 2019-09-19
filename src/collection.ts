@@ -7,14 +7,20 @@ import {
 import { firestore } from "firebase";
 import { Document } from "./document";
 import shortid from "shortid";
+import { executeFromCount } from "./utils";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
+  /**
+   * For more info read https://firebase.google.com/docs/firestore/query-data/listen
+   */
+  ignoreInitialSnapshot?: boolean;
   debug?: boolean;
 }
 
 const optionDefaults: Options = {
   serverTimestamps: "estimate",
+  ignoreInitialSnapshot: true,
   debug: false
 };
 
@@ -102,11 +108,6 @@ export class ObservableCollection<T extends object> {
   }
 
   public get isLoading() {
-    /**
-     * Referencing docsObservable here makes a difference. It triggers the
-     * listeners. @TODO figure out why  / if we need this.
-     */
-    // this.docsObservable.length;
     return this.isLoadingObservable.get();
   }
 
@@ -119,7 +120,6 @@ export class ObservableCollection<T extends object> {
   }
 
   public set ref(newRef: firestore.CollectionReference | undefined) {
-    // runInAction(() => this.changeSource(newRef));
     this.changeSource(newRef);
   }
 
@@ -243,7 +243,27 @@ export class ObservableCollection<T extends object> {
   };
 
   private handleSnapshot(snapshot: firestore.QuerySnapshot) {
-    this.logDebug(`handleSnapshot, docs.length: ${snapshot.docs.length}`);
+    this.logDebug(
+      `handleSnapshot, ${Date.now()} docs.length: ${snapshot.docs.length}`
+    );
+
+    this.logDebug(JSON.stringify(snapshot.metadata));
+
+    /**
+     * @TODO keep local cache of each document and only update data based on
+     * the docChanges
+     */
+    // snapshot.docChanges().forEach(function(change) {
+    //   if (change.type === "added") {
+    //     console.log("New: ", change.doc.data());
+    //   }
+    //   if (change.type === "modified") {
+    //     console.log("Modified: ", change.doc.data());
+    //   }
+    //   if (change.type === "removed") {
+    //     console.log("Removed: ", change.doc.data());
+    //   }
+    // });
 
     runInAction(() => {
       this.docsObservable.replace(
@@ -260,8 +280,8 @@ export class ObservableCollection<T extends object> {
     });
   }
 
-  private onSnapshotError(err: Error) {
-    throw new Error(`${this.path} onSnapshotError: ${err.message}`);
+  private handleSnapshotError(err: Error) {
+    throw new Error(`${this.path} snapshot error: ${err.message}`);
   }
 
   public setQuery(queryCreatorFn?: QueryCreatorFn) {
@@ -351,8 +371,11 @@ export class ObservableCollection<T extends object> {
     if (shouldListen) {
       this.logDebug("Subscribe listeners");
       this.onSnapshotUnsubscribeFn = this._query.onSnapshot(
-        snapshot => this.handleSnapshot(snapshot),
-        err => this.onSnapshotError(err)
+        executeFromCount(
+          snapshot => this.handleSnapshot(snapshot),
+          this.options.ignoreInitialSnapshot ? 1 : 0
+        ),
+        err => this.handleSnapshotError(err)
       );
 
       this.listenerSourceId = this.sourceId;
