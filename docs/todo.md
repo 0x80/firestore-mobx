@@ -1,9 +1,4 @@
-# TODO version 1.0
-
-## Bugs
-
-- Is there a clash between observable collections when different queries are
-  used on the same collection?
+# TODO
 
 ## Must Have
 
@@ -12,14 +7,14 @@
 
 ## Should Have
 
+- Cache collection document and only fetch data for the ones that change when a
+  new snapshot is arriving.
 - Add global setOptions function
 
 ## Could Have
 
 - Create a base class ObservableThing and use that as basis for Document and
   Collection
-- Figure out why using `this.isLoadingObservable;` (without `.get()`) breaks
-  updates in autorun function.
 - Collection.add() is misleading maybe, because the added document might not
   fall under the query and is therefor added to firestore but does not become
   part of the observable collection.

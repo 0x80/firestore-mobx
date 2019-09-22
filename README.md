@@ -2,16 +2,9 @@
   - [Features](#Features)
   - [Install](#Install)
   - [Usage](#Usage)
-  - [Restrictions on Dynamic Data
-    Sourcing](#Restrictions-on-Dynamic-Data-Sourcing)
-    - [Document](#Document)
-    - [Collection](#Collection)
   - [API](#API)
 
 # Firestore MobX
-
-**WARNING** This library is very new. There might still be some fundamental
-issues. Until the 1.0 release do not expect this to be suitable for production.
 
 This library was inspired by
 [Firestorter](https://github.com/IjzerenHein/firestorter). Read the [migration
@@ -20,10 +13,6 @@ and differences.
 
 You should be able to use this in any Javascript application including React,
 React-Native and Node.js.
-
-**NOTE** This library is based on my personal experience using Firestorter. If
-there are any features that you miss and deem essential, please let me know. It
-is possible that I have overlooked some valid use-cases.
 
 ## Features
 
@@ -36,6 +25,8 @@ is possible that I have overlooked some valid use-cases.
 `yarn add firestore-mobx` or `npm install firestore-mobx`
 
 ## Usage
+
+Here is a basic example:
 
 ```ts
 import { ObservableDocument, ObservableCollection } from "firestore-mobx";
