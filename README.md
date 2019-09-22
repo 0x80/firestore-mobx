@@ -17,7 +17,7 @@ React-Native and Node.js.
 ## Features
 
 - Minimal API surface
-- Written in Typescript with strict typings
+- Compile-time checks using Typescript generics
 - Minimal dependencies
 
 ## Install
