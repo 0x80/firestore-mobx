@@ -65,7 +65,7 @@ books.ref = firestore.collection(`authors/${differentAuthorId}/books`);
  * Change the query of a collection by passing a new "query creator function".
  * This function is called with the current collection ref to create a new query.
  */
-books.setQuery = ref => ref.orderBy("publishedAt", "desc");
+books.query = ref => ref.orderBy("publishedAt", "desc");
 
 /**
  * Wait for the data to become available. Alternatively you can observe the

@@ -41,8 +41,8 @@ will still expect it to be dealing with type `Book`.
 
 I have considered making the refs fixed for collections, but this can't work for
 subcollection. In these cases you need to be able to switch the collection ref
-dynamically. As long as you stay with the same subcollection the type of data
-will not change.
+dynamically. In such case the type of document remains the same, but the ref is
+still completely different.
 
 ### Context and Initialization
 
