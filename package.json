@@ -15,7 +15,7 @@
     "build": "rollup -c",
     "build:watch": "rollup -cw",
     "release": "yarn build && np",
-    "test": "echo \"Error: no test specified\" && exit 0",
+    "test": "jest",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\""
   },
@@ -35,17 +35,24 @@
     "shortid": "^2.2.15"
   },
   "devDependencies": {
+    "@babel/core": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
+    "@babel/preset-typescript": "^7.6.0",
     "@firebase/firestore-types": "^1.5.0",
+    "@types/jest": "^24.0.18",
     "@types/shortid": "^0.0.29",
     "@typescript-eslint/eslint-plugin": "^2.3.0",
     "@typescript-eslint/parser": "^2.3.0",
+    "babel-jest": "^24.9.0",
     "eslint": "^6.4.0",
     "eslint-config-prettier": "^6.3.0",
     "eslint-plugin-prettier": "^3.1.0",
     "eslint-plugin-react": "^7.14.3",
+    "jest": "^24.9.0",
     "prettier": "^1.18.2",
     "rollup": "^1.21.4",
     "rollup-plugin-typescript2": "^0.24.2",
+    "ts-jest": "^24.1.0",
     "typescript": "^3.6.3"
   }
 }

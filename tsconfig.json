@@ -11,5 +11,7 @@
     "rootDir": "src",
     "sourceMap": true,
     "experimentalDecorators": true
-  }
+  },
+  "exclude": ["node_modules"],
+  "include": ["**/*.ts"]
 }
