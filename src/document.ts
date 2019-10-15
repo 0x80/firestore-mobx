@@ -289,6 +289,20 @@ export class ObservableDocument<T extends object> {
 
   private changeSourceViaRef(ref?: firestore.DocumentReference) {
     const newPath = ref ? ref.path : undefined;
+    const oldPath = this._ref ? this._ref.path : undefined;
+
+    if (this._ref && ref && this._ref.isEqual(ref)) {
+      // this.logDebug("Ignore change source");
+      return;
+    }
+
+    // if (oldPath === newPath) {
+    //   /**
+    //    * When a ref is set with the same path as current it is a no-op
+    //    */
+    //   return;
+    // }
+
     this.logDebug(`Change source via ref to ${ref ? ref.path : undefined}`);
     this._ref = ref;
     this.sourceId = newPath;
