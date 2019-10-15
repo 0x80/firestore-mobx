@@ -91,13 +91,13 @@ export class ObservableDocument<T extends object> {
       this.changeLoadingState(true);
     } else {
       /**
-       * Source is type Document, typically passed in from the document data of
+       * Source is type Document<T>, typically passed in from the docs  data of
        * an ObservableCollection instance.
        */
       this._ref = source.ref;
       this._collectionRef = source.ref.parent;
       this.sourceId = source.ref.path;
-      this.logDebug("Constructor from document");
+      this.logDebug("Constructor from Document<T>");
 
       this._exists = true;
       this.dataObservable.set(source.data);
@@ -237,15 +237,22 @@ export class ObservableDocument<T extends object> {
 
   private resumeUpdates = () => {
     this.observedCount += 1;
-    this.logDebug(`Becoming observed, count: ${this.observedCount}`);
-    this.updateListeners(true);
+
+    // this.logDebug(`Becoming observed, count: ${this.observedCount}`);
+
+    if (this.observedCount === 1) {
+      this.logDebug("Becoming observed");
+      this.updateListeners(true);
+    }
   };
 
   private suspendUpdates = () => {
     this.observedCount -= 1;
-    this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
+
+    // this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
 
     if (this.observedCount === 0) {
+      this.logDebug("Becoming un-observed");
       this.updateListeners(false);
     }
   };
@@ -254,10 +261,9 @@ export class ObservableDocument<T extends object> {
     const exists = snapshot.exists;
 
     this.logDebug(`handleSnapshot, exists: ${exists}`);
-    // this.logDebug(
-    //   `handleSnapshot, exists: ${exists}, data: ${JSON.stringify(
-    //     snapshot.data({
-    //       serverTimestamps: this.options.serverTimestamps
+    // this.logDebug(`handleSnapshot, exists: ${exists}, data:
+    //   ${JSON.stringify(snapshot.data({serverTimestamps:
+    //   this.options.serverTimestamps
     //     })
     //   )}`
     // );

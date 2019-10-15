@@ -240,15 +240,22 @@ export class ObservableCollection<T extends object> {
 
   private resumeUpdates = () => {
     this.observedCount += 1;
-    this.logDebug(`Becoming observed, count: ${this.observedCount}`);
-    this.updateListeners(true);
+
+    // this.logDebug(`Becoming observed, count: ${this.observedCount}`);
+
+    if (this.observedCount === 1) {
+      this.logDebug("Becoming observed");
+      this.updateListeners(true);
+    }
   };
 
   private suspendUpdates = () => {
     this.observedCount -= 1;
-    this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
+
+    // this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
 
     if (this.observedCount === 0) {
+      this.logDebug("Becoming un-observed");
       this.updateListeners(false);
     }
   };
