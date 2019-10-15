@@ -133,12 +133,12 @@ export class ObservableCollection<T extends object> {
 
   private changeSource(newRef?: firestore.CollectionReference) {
     if (!this._ref && !newRef) {
-      this.logDebug("Ignore change source");
+      // this.logDebug("Ignore change source");
       return;
     }
 
     if (this._ref && newRef && this._ref.isEqual(newRef)) {
-      this.logDebug("Ignore change source");
+      // this.logDebug("Ignore change source");
       return;
     }
 
@@ -214,7 +214,7 @@ export class ObservableCollection<T extends object> {
 
   private fetchInitialData() {
     if (this.firedInitialFetch) {
-      this.logDebug("Ignore fetch initial data");
+      // this.logDebug("Ignore fetch initial data");
       return;
     }
 
@@ -362,7 +362,7 @@ export class ObservableCollection<T extends object> {
       isListening &&
       this.sourceId === this.listenerSourceId
     ) {
-      this.logDebug("Ignore update listeners");
+      // this.logDebug("Ignore update listeners");
       return;
     }
 
@@ -401,7 +401,7 @@ export class ObservableCollection<T extends object> {
   private changeLoadingState(isLoading: boolean) {
     const wasLoading = this.isLoading;
     if (wasLoading === isLoading) {
-      this.logDebug(`Ignore change loading state: ${isLoading}`);
+      // this.logDebug(`Ignore change loading state: ${isLoading}`);
       return;
     }
 

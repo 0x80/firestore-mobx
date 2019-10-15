@@ -215,15 +215,14 @@ export class ObservableDocument<T extends object> {
 
   private fetchInitialData() {
     if (this.firedInitialFetch || !this._ref) {
-      this.logDebug("Ignore fetch initial data");
+      // this.logDebug("Ignore fetch initial data");
       return;
     }
 
-    // if (!this._ref) {
-    //   // this.changeLoadingState(false);
+    // if (!this._ref) {// this.changeLoadingState(false);
 
     //   throw Error("Can not fetch data on document with undefined ref");
-    // }
+    //   }
 
     this.logDebug("Fetch initial data");
 
@@ -372,7 +371,7 @@ export class ObservableDocument<T extends object> {
       isListening &&
       this.sourceId === this.listenerSourceId
     ) {
-      this.logDebug("Ignore update listeners");
+      // this.logDebug("Ignore update listeners");
       return;
     }
 
