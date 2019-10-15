@@ -3,7 +3,8 @@ import {
   computed,
   runInAction,
   onBecomeObserved,
-  onBecomeUnobserved
+  onBecomeUnobserved,
+  IObservableArray
 } from "mobx";
 import { firestore } from "firebase";
 import { Document } from "./document";
@@ -97,7 +98,7 @@ export class ObservableCollection<T extends object> {
     }
   }
 
-  public get docs() {
+  public get docs(): IObservableArray<Document<T>> {
     return this.docsObservable;
   }
 
