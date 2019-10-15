@@ -16,7 +16,8 @@
     "build:watch": "rollup -cw",
     "release": "yarn build && np",
     "firestore-emulator": "gcloud beta emulators firestore start --host-port localhost:8080",
-    "test": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest",
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "xtest": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\""
   },
