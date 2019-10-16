@@ -8,9 +8,6 @@
     "dist"
   ],
   "types": "dist/index.d.ts",
-  "np": {
-    "contents": "dist"
-  },
   "scripts": {
     "build": "rollup -c",
     "build:watch": "rollup -cw",
