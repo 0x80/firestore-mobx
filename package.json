@@ -1,6 +1,6 @@
 {
   "name": "firestore-mobx",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Observable Firestore documents and collections using MobX",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
@@ -30,8 +30,8 @@
   },
   "homepage": "https://github.com/0x80/firestore-mobx#readme",
   "peerDependencies": {
-    "firebase": ">= 7.x",
-    "mobx": ">= 5.x"
+    "firebase": ">= 7.0.0",
+    "mobx": ">= 5.0.0"
   },
   "dependencies": {
     "shortid": "^2.2.15"
