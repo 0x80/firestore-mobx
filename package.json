@@ -15,7 +15,7 @@
     "release": "yarn build && np --no-yarn",
     "firestore-emulator": "gcloud beta emulators firestore start --host-port localhost:8080",
     "test": "echo \"Error: no test specified\" && exit 0",
-    "xtest": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest",
+    "xtest": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\""
   },
