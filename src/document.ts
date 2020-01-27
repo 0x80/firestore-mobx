@@ -143,7 +143,7 @@ export class ObservableDocument<T extends object> {
   }
 
   public get isLoading() {
-    return this.isLoadingObservable.get();
+    return this.isLoadingObservable;
   }
 
   public get isObserved() {
@@ -441,7 +441,7 @@ export class ObservableDocument<T extends object> {
   }
 
   private changeLoadingState(isLoading: boolean) {
-    const wasLoading = this.isLoading;
+    const wasLoading = this.isLoading.get();
     if (wasLoading === isLoading) {
       this.logDebug(`Ignore change loading state: ${isLoading}`);
       return;
