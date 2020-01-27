@@ -113,7 +113,7 @@ export class ObservableCollection<T extends object> {
   }
 
   public get isLoading() {
-    return this.isLoadingObservable.get();
+    return this.isLoadingObservable;
   }
 
   public get isObserved() {
@@ -231,9 +231,19 @@ export class ObservableCollection<T extends object> {
      * listener would.
      */
     if (this._query) {
-      this._query.get().then(snapshot => this.handleSnapshot(snapshot));
+      this._query
+        .get()
+        .then(snapshot => this.handleSnapshot(snapshot))
+        .catch(err =>
+          console.error(`Fetch initial data failed: ${err.message}`)
+        );
     } else {
-      this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
+      this._ref
+        .get()
+        .then(snapshot => this.handleSnapshot(snapshot))
+        .catch(err =>
+          console.error(`Fetch initial data failed: ${err.message}`)
+        );
     }
 
     this.firedInitialFetch = true;
@@ -407,7 +417,7 @@ export class ObservableCollection<T extends object> {
   }
 
   private changeLoadingState(isLoading: boolean) {
-    const wasLoading = this.isLoading;
+    const wasLoading = this.isLoading.get();
     if (wasLoading === isLoading) {
       // this.logDebug(`Ignore change loading state: ${isLoading}`);
       return;

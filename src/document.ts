@@ -134,7 +134,7 @@ export class ObservableDocument<T extends object> {
   }
 
   public get isLoading() {
-    return this.isLoadingObservable.get();
+    return this.isLoadingObservable;
   }
 
   public get isObserved() {
@@ -231,7 +231,10 @@ export class ObservableDocument<T extends object> {
      * will then resolve the ready promise just like the snapshot from a
      * listener would.
      */
-    this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
+    this._ref
+      .get()
+      .then(snapshot => this.handleSnapshot(snapshot))
+      .catch(err => console.error(`Fetch initial data failed: ${err.message}`));
     this.firedInitialFetch = true;
   }
 
@@ -289,7 +292,7 @@ export class ObservableDocument<T extends object> {
 
   private changeSourceViaRef(ref?: firestore.DocumentReference) {
     const newPath = ref ? ref.path : undefined;
-    const oldPath = this._ref ? this._ref.path : undefined;
+    // const oldPath = this._ref ? this._ref.path : undefined;
 
     if (this._ref && ref && this._ref.isEqual(ref)) {
       // this.logDebug("Ignore change source");
@@ -420,7 +423,7 @@ export class ObservableDocument<T extends object> {
   }
 
   private changeLoadingState(isLoading: boolean) {
-    const wasLoading = this.isLoading;
+    const wasLoading = this.isLoading.get();
     if (wasLoading === isLoading) {
       this.logDebug(`Ignore change loading state: ${isLoading}`);
       return;
