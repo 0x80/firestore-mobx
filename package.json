@@ -13,6 +13,7 @@
     "build": "rollup -c",
     "build:watch": "rollup -cw",
     "release": "yarn build && np --no-yarn",
+    "release-yolo": "yarn build && np --yolo --no-yarn",
     "firestore-emulator": "gcloud beta emulators firestore start --host-port localhost:8080",
     "xtest": "concurrently --kill-others \"npm run firestore-emulator\" \"FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1\"",
     "ztest": "npm run firestore-emulator & FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1",
