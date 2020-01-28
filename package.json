@@ -15,8 +15,8 @@
     "release": "yarn build && np --no-yarn",
     "firestore-emulator": "gcloud beta emulators firestore start --host-port localhost:8080",
     "xtest": "concurrently --kill-others \"npm run firestore-emulator\" \"FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1\"",
-    "test": "npm run firestore-emulator & FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1",
-    "ztest": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1",
+    "ztest": "npm run firestore-emulator & FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1",
+    "test": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\""
   },
