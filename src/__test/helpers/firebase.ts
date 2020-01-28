@@ -1,9 +1,9 @@
 import admin from "firebase-admin";
-// import { FirebaseFirestore } from "@firebase/firestore-types";
+import { FirebaseFirestore } from "@firebase/firestore-types";
 
 export const adminApp = admin.initializeApp();
 
-export const db = admin.firestore(adminApp);
+export const db = (admin.firestore(adminApp) as unknown) as FirebaseFirestore;
 
 export const FieldValue = admin.firestore.FieldValue;
 export const Timestamp = admin.firestore.Timestamp;
