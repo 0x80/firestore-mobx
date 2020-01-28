@@ -1,4 +1,4 @@
-import { db } from "./firebase";
+import { db } from "./helpers/firebase";
 
 test("Write and read a document", async () => {
   // const path = "test";
