@@ -1,7 +1,7 @@
 import { db } from "./firebase";
 
 test("Write and read a document", async () => {
-  const path = "test";
+  // const path = "test";
   const ref = await db.collection("test").add({
     foo: "bar"
   });

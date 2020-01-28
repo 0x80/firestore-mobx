@@ -15,7 +15,7 @@
     "release": "yarn build && np --no-yarn",
     "firestore-emulator": "gcloud beta emulators firestore start --host-port localhost:8080",
     "test": "echo \"Error: no test specified\" && exit 0",
-    "xtest": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest",
+    "xtest": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\""
   },
@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/0x80/firestore-mobx#readme",
   "peerDependencies": {
-    "firebase": "^7.0.0",
+    "firebase": "^7.6.0",
     "mobx": "^5.0.0"
   },
   "dependencies": {
@@ -40,23 +40,23 @@
     "@babel/core": "^7.6.4",
     "@babel/preset-env": "^7.6.3",
     "@babel/preset-typescript": "^7.6.0",
-    "@firebase/firestore-types": "^1.6.2",
+    "@firebase/firestore-types": "^1.9.0",
     "@types/jest": "^24.0.19",
     "@types/shortid": "^0.0.29",
     "@typescript-eslint/eslint-plugin": "^2.4.0",
     "@typescript-eslint/parser": "^2.4.0",
-    "babel-jest": "^24.9.0",
+    "babel-jest": "^25.1.0",
     "eslint": "^6.5.1",
     "eslint-config-prettier": "^6.4.0",
     "eslint-plugin-prettier": "^3.1.1",
     "eslint-plugin-react": "^7.16.0",
     "firebase-admin": "^8.6.1",
     "install-peers-cli": "^2.1.1",
-    "jest": "^24.9.0",
+    "jest": "^25.1.0",
     "prettier": "^1.18.2",
     "rollup": "^1.24.0",
-    "rollup-plugin-typescript2": "^0.24.3",
-    "ts-jest": "^24.1.0",
+    "rollup-plugin-typescript2": "^0.25.3",
+    "ts-jest": "^25.0.0",
     "typescript": "^3.6.4"
   }
 }

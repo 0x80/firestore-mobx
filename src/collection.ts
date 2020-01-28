@@ -38,6 +38,7 @@ export class ObservableCollection<T extends object> {
   @observable private docsObservable = observable.array([] as Document<T>[]);
   @observable private isLoadingObservable = observable.box(false);
 
+  private _id: string;
   private _ref?: firestore.CollectionReference;
   private _query?: firestore.Query;
   private queryCreatorFn?: QueryCreatorFn;
@@ -66,6 +67,7 @@ export class ObservableCollection<T extends object> {
     queryCreatorFn?: QueryCreatorFn,
     options?: Options
   ) {
+    this._id = shortid.generate();
     this.logDebug("Constructor");
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
@@ -87,11 +89,18 @@ export class ObservableCollection<T extends object> {
       this.isDebugEnabled = options.debug || false;
     }
 
-    onBecomeObserved(this, "docsObservable", this.resumeUpdates);
-    onBecomeUnobserved(this, "docsObservable", this.suspendUpdates);
+    onBecomeObserved(this, "docsObservable", () => this.resumeUpdates("docs"));
+    onBecomeUnobserved(this, "docsObservable", () =>
+      this.suspendUpdates("docs")
+    );
 
-    onBecomeObserved(this, "isLoadingObservable", this.resumeUpdates);
-    onBecomeUnobserved(this, "isLoadingObservable", this.suspendUpdates);
+    onBecomeObserved(this, "isLoadingObservable", () =>
+      this.resumeUpdates("isLoading")
+    );
+
+    onBecomeUnobserved(this, "isLoadingObservable", () =>
+      this.suspendUpdates("isLoading")
+    );
 
     if (hasReference(ref)) {
       this.changeLoadingState(true);
@@ -231,18 +240,32 @@ export class ObservableCollection<T extends object> {
      * listener would.
      */
     if (this._query) {
-      this._query.get().then(snapshot => this.handleSnapshot(snapshot));
+      this._query
+        .get()
+        .then(snapshot => this.handleSnapshot(snapshot))
+        .catch(err =>
+          console.error(`Fetch initial data failed: ${err.message}`)
+        );
     } else {
-      this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
+      this._ref
+        .get()
+        .then(snapshot => this.handleSnapshot(snapshot))
+        .catch(err =>
+          console.error(`Fetch initial data failed: ${err.message}`)
+        );
     }
 
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates = () => {
+  private resumeUpdates = (context: string) => {
+    this.logDebug(
+      `Resume ${context}. Observed count before: ${this.observedCount}`
+    );
+
     this.observedCount += 1;
 
-    // this.logDebug(`Becoming observed, count: ${this.observedCount}`);
+    this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 1) {
       this.logDebug("Becoming observed");
@@ -250,10 +273,13 @@ export class ObservableCollection<T extends object> {
     }
   };
 
-  private suspendUpdates = () => {
+  private suspendUpdates = (context: string) => {
+    this.logDebug(
+      `Suspend ${context}. Observed count before: ${this.observedCount}`
+    );
     this.observedCount -= 1;
 
-    // this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
+    this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 0) {
       this.logDebug("Becoming un-observed");
@@ -355,9 +381,9 @@ export class ObservableCollection<T extends object> {
   private logDebug(message: string) {
     if (this.isDebugEnabled) {
       if (this._ref) {
-        console.log(`${message} (${this._ref.path})`);
+        console.log(`${this._id} ${message} (${this._ref.path})`);
       } else {
-        console.log(`${message}`);
+        console.log(`${this._id} ${message}`);
       }
     }
   }

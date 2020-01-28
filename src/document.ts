@@ -6,6 +6,7 @@ import {
   onBecomeUnobserved
 } from "mobx";
 import { firestore } from "firebase";
+import shortid from "shortid";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -50,10 +51,11 @@ export class ObservableDocument<T extends object> {
   @observable private dataObservable: IObservableValue<T | undefined>;
   @observable private isLoadingObservable: IObservableValue<boolean>;
 
+  private _id: string;
   private _ref?: firestore.DocumentReference;
   private _collectionRef?: firestore.CollectionReference;
   private isDebugEnabled = false;
-  // private _path?: string;
+
   private _exists = false;
   private readyPromise = Promise.resolve();
   private readyResolveFn?: () => void;
@@ -65,6 +67,7 @@ export class ObservableDocument<T extends object> {
   private listenerSourceId?: string;
 
   public constructor(source?: SourceType<T>, options?: Options) {
+    this._id = shortid.generate();
     this.dataObservable = observable.box(undefined);
     this.isLoadingObservable = observable.box(false);
 
@@ -103,11 +106,17 @@ export class ObservableDocument<T extends object> {
       this.dataObservable.set(source.data);
     }
 
-    onBecomeObserved(this, "dataObservable", this.resumeUpdates);
-    onBecomeUnobserved(this, "dataObservable", this.suspendUpdates);
+    onBecomeObserved(this, "dataObservable", () => this.resumeUpdates("data"));
+    onBecomeUnobserved(this, "dataObservable", () =>
+      this.suspendUpdates("data")
+    );
 
-    onBecomeObserved(this, "isLoadingObservable", this.resumeUpdates);
-    onBecomeUnobserved(this, "isLoadingObservable", this.suspendUpdates);
+    onBecomeObserved(this, "isLoadingObservable", () =>
+      this.resumeUpdates("isLoading")
+    );
+    onBecomeUnobserved(this, "isLoadingObservable", () =>
+      this.suspendUpdates("isLoading")
+    );
   }
 
   public get id(): string | undefined {
@@ -231,14 +240,21 @@ export class ObservableDocument<T extends object> {
      * will then resolve the ready promise just like the snapshot from a
      * listener would.
      */
-    this._ref.get().then(snapshot => this.handleSnapshot(snapshot));
+    this._ref
+      .get()
+      .then(snapshot => this.handleSnapshot(snapshot))
+      .catch(err => console.error(`Fetch initial data failed: ${err.message}`));
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates = () => {
+  private resumeUpdates = (context: string) => {
+    this.logDebug(
+      `Resume ${context}. Observed count before: ${this.observedCount}`
+    );
+
     this.observedCount += 1;
 
-    // this.logDebug(`Becoming observed, count: ${this.observedCount}`);
+    this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 1) {
       this.logDebug("Becoming observed");
@@ -246,10 +262,13 @@ export class ObservableDocument<T extends object> {
     }
   };
 
-  private suspendUpdates = () => {
+  private suspendUpdates = (context: string) => {
+    this.logDebug(
+      `Suspend ${context}. Observed count before: ${this.observedCount}`
+    );
     this.observedCount -= 1;
 
-    // this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
+    this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 0) {
       this.logDebug("Becoming un-observed");
@@ -289,7 +308,7 @@ export class ObservableDocument<T extends object> {
 
   private changeSourceViaRef(ref?: firestore.DocumentReference) {
     const newPath = ref ? ref.path : undefined;
-    const oldPath = this._ref ? this._ref.path : undefined;
+    // const oldPath = this._ref ? this._ref.path : undefined;
 
     if (this._ref && ref && this._ref.isEqual(ref)) {
       // this.logDebug("Ignore change source");
@@ -375,10 +394,12 @@ export class ObservableDocument<T extends object> {
     if (this.isDebugEnabled) {
       if (!this._ref) {
         console.log(
-          `${message} (${getPathFromCollectionRef(this._collectionRef)})`
+          `${this._id} ${message} (${getPathFromCollectionRef(
+            this._collectionRef
+          )})`
         );
       } else {
-        console.log(`${message} (${this._ref.path})`);
+        console.log(`${this._id} ${message} (${this._ref.path})`);
       }
     }
   }
