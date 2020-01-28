@@ -87,11 +87,17 @@ export class ObservableCollection<T extends object> {
       this.isDebugEnabled = options.debug || false;
     }
 
-    onBecomeObserved(this, "docsObservable", this.resumeUpdates);
-    onBecomeUnobserved(this, "docsObservable", this.suspendUpdates);
+    onBecomeObserved(this, "docsObservable", () => this.resumeUpdates("docs"));
+    onBecomeUnobserved(this, "docsObservable", () =>
+      this.suspendUpdates("docs")
+    );
 
-    onBecomeObserved(this, "isLoadingObservable", this.resumeUpdates);
-    onBecomeUnobserved(this, "isLoadingObservable", this.suspendUpdates);
+    onBecomeObserved(this, "isLoadingObservable", () =>
+      this.resumeUpdates("isLoading")
+    );
+    onBecomeUnobserved(this, "isLoadingObservable", () =>
+      this.suspendUpdates("isLoading")
+    );
 
     if (hasReference(ref)) {
       this.changeLoadingState(true);
@@ -249,10 +255,14 @@ export class ObservableCollection<T extends object> {
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates = () => {
+  private resumeUpdates = (context: string) => {
+    this.logDebug(
+      `Resume ${context}. Observed count before: ${this.observedCount}`
+    );
+
     this.observedCount += 1;
 
-    // this.logDebug(`Becoming observed, count: ${this.observedCount}`);
+    this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 1) {
       this.logDebug("Becoming observed");
@@ -260,10 +270,13 @@ export class ObservableCollection<T extends object> {
     }
   };
 
-  private suspendUpdates = () => {
+  private suspendUpdates = (context: string) => {
+    this.logDebug(
+      `Suspend ${context}. Observed count before: ${this.observedCount}`
+    );
     this.observedCount -= 1;
 
-    // this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
+    this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 0) {
       this.logDebug("Becoming un-observed");

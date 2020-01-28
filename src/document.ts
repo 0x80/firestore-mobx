@@ -103,11 +103,17 @@ export class ObservableDocument<T extends object> {
       this.dataObservable.set(source.data);
     }
 
-    onBecomeObserved(this, "dataObservable", this.resumeUpdates);
-    onBecomeUnobserved(this, "dataObservable", this.suspendUpdates);
+    onBecomeObserved(this, "dataObservable", () => this.resumeUpdates("data"));
+    onBecomeUnobserved(this, "dataObservable", () =>
+      this.suspendUpdates("data")
+    );
 
-    onBecomeObserved(this, "isLoadingObservable", this.resumeUpdates);
-    onBecomeUnobserved(this, "isLoadingObservable", this.suspendUpdates);
+    onBecomeObserved(this, "isLoadingObservable", () =>
+      this.resumeUpdates("isLoading")
+    );
+    onBecomeUnobserved(this, "isLoadingObservable", () =>
+      this.suspendUpdates("isLoading")
+    );
   }
 
   public get id(): string | undefined {
@@ -238,10 +244,14 @@ export class ObservableDocument<T extends object> {
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates = () => {
+  private resumeUpdates = (context: string) => {
+    this.logDebug(
+      `Resume ${context}. Observed count before: ${this.observedCount}`
+    );
+
     this.observedCount += 1;
 
-    // this.logDebug(`Becoming observed, count: ${this.observedCount}`);
+    this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 1) {
       this.logDebug("Becoming observed");
@@ -249,10 +259,13 @@ export class ObservableDocument<T extends object> {
     }
   };
 
-  private suspendUpdates = () => {
+  private suspendUpdates = (context: string) => {
+    this.logDebug(
+      `Suspend ${context}. Observed count before: ${this.observedCount}`
+    );
     this.observedCount -= 1;
 
-    // this.logDebug(`Becoming un-observed, count: ${this.observedCount}`);
+    this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 0) {
       this.logDebug("Becoming un-observed");
