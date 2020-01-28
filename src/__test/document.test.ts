@@ -9,38 +9,42 @@ import { db } from "./helpers/firebase";
 import { first } from "lodash";
 import { autorun } from "mobx";
 
-beforeEach(() => initializeDataset());
-afterEach(() => clearDataset());
+describe("testing document", () => {
+  beforeAll(() => initializeDataset());
+  afterAll(() => clearDataset());
+  // beforeEach(() => initializeDataset());
+  // afterEach(() => clearDataset());
 
-test("Create a document", () => {
-  const document = new ObservableDocument();
+  test("Create a document", () => {
+    const document = new ObservableDocument();
 
-  expect(document.isLoading).toBe(false);
-  expect(document.hasData).toBe(false);
-  expect(document.data).toBe(undefined);
-});
-
-test("Create a document from ref", async () => {
-  const snapshot = await db
-    .collection(collectionName)
-    .orderBy("count", "asc")
-    .get();
-
-  const document = new ObservableDocument(first(snapshot.docs)?.ref);
-
-  expect(document.isLoading).toBe(true);
-  expect(document.hasData).toBe(false);
-  expect(document.data).toBeUndefined();
-
-  const disposeListeners = autorun(() => {
-    console.log("isLoading", document.isLoading);
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(false);
+    expect(document.data).toBe(undefined);
   });
 
-  await document.ready();
+  test("Create a document from ref", async () => {
+    const snapshot = await db
+      .collection(collectionName)
+      .orderBy("count", "asc")
+      .get();
 
-  expect(document.isLoading).toBe(false);
-  expect(document.hasData).toBe(true);
-  expect(document.data).toEqual(first(collectionData));
+    const document = new ObservableDocument(first(snapshot.docs)?.ref);
 
-  disposeListeners();
+    expect(document.isLoading).toBe(true);
+    expect(document.hasData).toBe(false);
+    expect(document.data).toBeUndefined();
+
+    const disposeListeners = autorun(() => {
+      console.log("isLoading", document.isLoading);
+    });
+
+    await document.ready();
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(true);
+    expect(document.data).toEqual(first(collectionData));
+
+    disposeListeners();
+  });
 });
