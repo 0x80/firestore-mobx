@@ -6,6 +6,7 @@ import {
   onBecomeUnobserved
 } from "mobx";
 import { firestore } from "firebase";
+import shortid from "shortid";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -50,10 +51,11 @@ export class ObservableDocument<T extends object> {
   @observable private dataObservable: IObservableValue<T | undefined>;
   @observable private isLoadingObservable: IObservableValue<boolean>;
 
+  private _id: string;
   private _ref?: firestore.DocumentReference;
   private _collectionRef?: firestore.CollectionReference;
   private isDebugEnabled = false;
-  // private _path?: string;
+
   private _exists = false;
   private readyPromise = Promise.resolve();
   private readyResolveFn?: () => void;
@@ -65,6 +67,7 @@ export class ObservableDocument<T extends object> {
   private listenerSourceId?: string;
 
   public constructor(source?: SourceType<T>, options?: Options) {
+    this._id = shortid.generate();
     this.dataObservable = observable.box(undefined);
     this.isLoadingObservable = observable.box(false);
 
@@ -391,10 +394,12 @@ export class ObservableDocument<T extends object> {
     if (this.isDebugEnabled) {
       if (!this._ref) {
         console.log(
-          `${message} (${getPathFromCollectionRef(this._collectionRef)})`
+          `${this._id} ${message} (${getPathFromCollectionRef(
+            this._collectionRef
+          )})`
         );
       } else {
-        console.log(`${message} (${this._ref.path})`);
+        console.log(`${this._id} ${message} (${this._ref.path})`);
       }
     }
   }
