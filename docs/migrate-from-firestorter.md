@@ -6,16 +6,16 @@ This library was inspired by
 [Firestorter](https://github.com/IjzerenHein/firestorter).
 
 After finding myself using only a small portion of the Firestorter API and at
-the same time missing things like compile-time type checks, I decided to develop
-this library as a lean alternative based on the same core idea.
+the same time missing some elements, I decided to take it as a challenge to
+develop a lean alternative based on the same core idea.
 
 I have tried to focus on the bare essentials and managed to discard a lot of the
-complexity and code. To give you an idea, firestore-mobx is implemented in less
-then one-third of the code; 362 vs 1267 lines.
+complexity and code. To give you an idea, at the time of writing firestore-mobx
+is implemented in less then one-third of the code.
 
-In my quest to keep the codebase clean and simple I might have overlooked some
-use-cases for the original Firestorter APIs, so this library might not be valid
-alternative for some.
+In my quest to keep the codebase simple I have discarded some use-cases for the
+original Firestorter APIs, so this library will not be valid alternative for
+everyone.
 
 ## What was Removed / Changed
 
@@ -82,3 +82,11 @@ let me know so I can reconsider them.
 
 I never had a need for reactive query functions so I left this out. If you
 disagree please let me know so I can reconsider them.
+
+### Other Features
+
+Newer versions of Firestorter contain even more functionality. I will not cover
+them now, so check it out for yourself. These include:
+
+- Aggregate Collections
+- Geo Queries

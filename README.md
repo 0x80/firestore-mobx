@@ -11,13 +11,13 @@ This library was inspired by
 docs](/docs/migrate-from-firestorter.md) if you are interested in the motivation
 and differences.
 
-You should be able to use this in any Javascript application including React,
-React-Native and Node.js.
+You should be able to use this in any Javascript application including React and
+Node.js. This library has not been tested in the context of React Native yet.
 
 ## Features
 
 - Minimal API surface
-- Compile-time checks using Typescript generics
+- Written in Typescript, providing static type checks through generics
 - Minimal dependencies
 
 ## Install
@@ -69,7 +69,7 @@ books.query = ref => ref.orderBy("publishedAt", "desc");
 
 /**
  * Wait for the data to become available. Alternatively you can observe the
- * books.isLoading property.
+ * books.isLoading property for asynchronous waiting.
  */
 await books.ready();
 
