@@ -248,10 +248,6 @@ export class ObservableDocument<T extends object> {
   }
 
   private resumeUpdates = (context: string) => {
-    this.logDebug(
-      `Resume ${context}. Observed count before: ${this.observedCount}`
-    );
-
     this.observedCount += 1;
 
     this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
@@ -263,9 +259,6 @@ export class ObservableDocument<T extends object> {
   };
 
   private suspendUpdates = (context: string) => {
-    this.logDebug(
-      `Suspend ${context}. Observed count before: ${this.observedCount}`
-    );
     this.observedCount -= 1;
 
     this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);
