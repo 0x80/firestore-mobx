@@ -374,7 +374,7 @@ export class ObservableCollection<T extends object> {
   private logDebug(message: string) {
     if (this.isDebugEnabled) {
       if (this._ref) {
-        console.log(`${this._id} ${message} (${this._ref.path})`);
+        console.log(`${this._id} (${this._ref.path}) ${message} `);
       } else {
         console.log(`${this._id} ${message}`);
       }

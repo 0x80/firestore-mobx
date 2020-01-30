@@ -387,12 +387,12 @@ export class ObservableDocument<T extends object> {
     if (this.isDebugEnabled) {
       if (!this._ref) {
         console.log(
-          `${this._id} ${message} (${getPathFromCollectionRef(
+          `${this._id} (${getPathFromCollectionRef(
             this._collectionRef
-          )})`
+          )}) ${message}`
         );
       } else {
-        console.log(`${this._id} ${message} (${this._ref.path})`);
+        console.log(`${this._id} (${this._ref.path}) ${message}`);
       }
     }
   }
