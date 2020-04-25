@@ -1,14 +1,23 @@
 module.exports = {
   parser: "@typescript-eslint/parser",
   parserOptions: {
-    project: "./tsconfig.json" // required for rules that need type information
+    project: "./tsconfig.json", // required for rules that need type information
+    ecmaVersion: 2018,
+    sourceType: "module",
   },
+  env: {
+    browser: true,
+    commonjs: true,
+    es6: true,
+    node: true,
+  },
+  plugins: ["@typescript-eslint", "prettier"],
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
     "prettier",
-    "prettier/@typescript-eslint"
+    "prettier/@typescript-eslint",
   ],
   rules: {
     "no-console": ["error", { allow: ["error", "log"] }],
