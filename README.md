@@ -1,8 +1,9 @@
-- [Firestore MobX](#Firestore-MobX)
-  - [Features](#Features)
-  - [Install](#Install)
-  - [Usage](#Usage)
-  - [API](#API)
+- [Firestore MobX](#firestore-mobx)
+  - [Features](#features)
+  - [Install](#install)
+  - [Usage](#usage)
+  - [API](#api)
+  - [Test](#test)
 
 # Firestore MobX
 
@@ -87,3 +88,11 @@ books.docs.forEach(doc => console.log(doc.data));
 ## API
 
 See the [API docs](/docs/api.md).
+
+## Test
+
+- `yarn prepare`: Run this to install peer-dependencies for development. This command
+needs to be re-run after installing/upgrading dependencies, otherwise the `mobx`
+package won't be found.
+- `yarn emulate`: Start the Firestore emulator against which the test run.
+- `yarn test`: Run tests.

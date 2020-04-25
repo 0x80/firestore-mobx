@@ -11,13 +11,10 @@
   "scripts": {
     "prepare": "install-peers",
     "build": "rollup -c",
-    "build:watch": "rollup -cw",
     "release": "yarn build && np --no-yarn",
     "release-yolo": "yarn build && np --yolo --no-yarn",
-    "firestore-emulator": "gcloud beta emulators firestore start --host-port localhost:8080",
-    "xtest": "concurrently --kill-others \"npm run firestore-emulator\" \"FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1\"",
-    "ztest": "npm run firestore-emulator & FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1",
-    "test": "FIRESTORE_EMULATOR_HOST=localhost:8080 jest --env node --maxWorkers 1",
+    "emulate": "dotenv firebase emulators:start --only firestore",
+    "test": "jest --env node --maxWorkers 1",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\""
   },
