@@ -33,7 +33,7 @@ export const collectionData: SomeDocument[] = [
 
 export async function initializeDataset() {
   const promisedOperations = collectionData.map(doc => {
-    console.log("Injecting", doc.title);
+    // console.log("Injecting", doc.title);
     return db.collection(collectionName).add(doc);
   });
 
@@ -44,7 +44,7 @@ export async function clearDataset() {
   const snapshot = await db.collection(collectionName).get();
 
   const promisedOperations = snapshot.docs.map(doc => {
-    console.log("Deleting", doc.ref.path);
+    // console.log("Deleting", doc.ref.path);
     return doc.ref.delete();
   });
 

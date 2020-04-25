@@ -1,10 +1,10 @@
-import admin from "firebase-admin";
-import { FirebaseFirestore } from "@firebase/firestore-types";
+// import { FirebaseFirestore } from "@firebase/firestore-types";
+import * as firebase from '@firebase/testing'
 
-export const adminApp = admin.initializeApp();
+export const app = firebase.initializeTestApp({projectId: 'firestore-mobx-test',  auth: { uid: "alice", email: "alice@example.com" }});
 
-export const db = (admin.firestore(adminApp) as unknown) as FirebaseFirestore;
+export const db = app.firestore()
 
-export const FieldValue = admin.firestore.FieldValue;
-export const Timestamp = admin.firestore.Timestamp;
-export type Timestamp = admin.firestore.Timestamp;
+export const FieldValue = firebase.firestore.FieldValue;
+export const Timestamp = firebase.firestore.Timestamp;
+export type Timestamp = firebase.firestore.Timestamp;

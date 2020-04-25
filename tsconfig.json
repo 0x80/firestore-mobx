@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2018",
     "module": "esnext",
     "lib": ["dom", "esnext"],
     "strict": true,
@@ -12,6 +12,5 @@
     "sourceMap": true,
     "experimentalDecorators": true
   },
-  "exclude": ["node_modules"],
   "include": ["**/*.ts"]
 }
