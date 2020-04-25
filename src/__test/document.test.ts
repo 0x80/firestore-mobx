@@ -102,8 +102,29 @@ describe("Document", () => {
 
     document.id = '__non_existing_id'
 
-    return document.ready().then(data => {
+    await document.ready().then(data => {
       expect(data).toBeUndefined();
+    })
+
+  });
+
+
+  it("Should have a fallback id", async () => {
+    const document = new ObservableDocument(db
+      .collection(collectionName));
+
+    expect(document.id).toBe('__no_id')
+
+    document.id = '__non_existing_id'
+
+    await document.ready().then(() => {
+      expect(document.id).toBe('__non_existing_id')
+    })
+
+    document.id = undefined
+
+    await document.ready().then(() => {
+      expect(document.id).toBe('__no_id')
     })
 
   });
