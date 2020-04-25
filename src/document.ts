@@ -52,7 +52,7 @@ export class ObservableDocument<T extends object> {
   @observable private dataObservable: IObservableValue<T | undefined>;
   @observable private isLoadingObservable: IObservableValue<boolean>;
 
-  private _id: string;
+  private _debug_id: string;
   private _ref?: firestore.DocumentReference;
   private _collectionRef?: firestore.CollectionReference;
   private isDebugEnabled = false;
@@ -68,7 +68,7 @@ export class ObservableDocument<T extends object> {
   private listenerSourceId?: string;
 
   public constructor(source?: SourceType<T>, options?: Options) {
-    this._id = shortid.generate();
+    this._debug_id = shortid.generate();
     this.dataObservable = observable.box(undefined);
     this.isLoadingObservable = observable.box(false);
 
@@ -389,12 +389,12 @@ export class ObservableDocument<T extends object> {
     if (this.isDebugEnabled) {
       if (!this._ref) {
         console.log(
-          `${this._id} (${getPathFromCollectionRef(
+          `${this._debug_id} (${getPathFromCollectionRef(
             this._collectionRef
           )}) ${message}`
         );
       } else {
-        console.log(`${this._id} (${this._ref.path}) ${message}`);
+        console.log(`${this._debug_id} (${this._ref.path}) ${message}`);
       }
     }
   }

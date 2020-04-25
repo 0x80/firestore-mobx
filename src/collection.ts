@@ -38,7 +38,7 @@ export class ObservableCollection<T extends object> {
   @observable private docsObservable = observable.array([] as Document<T>[]);
   @observable private isLoadingObservable = observable.box(false);
 
-  private _id: string;
+  private _debug_id: string;
   private _ref?: firestore.CollectionReference;
   private _query?: firestore.Query;
   private queryCreatorFn?: QueryCreatorFn;
@@ -67,7 +67,7 @@ export class ObservableCollection<T extends object> {
     queryCreatorFn?: QueryCreatorFn,
     options?: Options
   ) {
-    this._id = shortid.generate();
+    this._debug_id = shortid.generate();
     this.logDebug("Constructor");
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
@@ -374,9 +374,9 @@ export class ObservableCollection<T extends object> {
   private logDebug(message: string) {
     if (this.isDebugEnabled) {
       if (this._ref) {
-        console.log(`${this._id} (${this._ref.path}) ${message} `);
+        console.log(`${this._debug_id} (${this._ref.path}) ${message} `);
       } else {
-        console.log(`${this._id} ${message}`);
+        console.log(`${this._debug_id} ${message}`);
       }
     }
   }
