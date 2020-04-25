@@ -120,7 +120,7 @@ export class ObservableDocument<T extends object> {
   }
 
   public get id(): string | undefined {
-    return this._ref ? this._ref.id : undefined;
+    return this._ref ? this._ref.id : "__no_id";
   }
 
   // @TODO rename to changeDocument? more explicit
