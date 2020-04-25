@@ -91,6 +91,6 @@ See the [API docs](/docs/api.md).
 
 ## Testing
 
-- `yarn install`: Run this to install dependencies + peer-dependencies for development.
+- `yarn install-peers`: Run this to install peer-dependencies for development.
 - `yarn emulate`: Start the Firestore emulator against which the test run.
 - `yarn test`: Run tests.
