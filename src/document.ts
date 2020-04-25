@@ -7,6 +7,7 @@ import {
 } from "mobx";
 import { firestore } from "firebase";
 import shortid from "shortid";
+import { assert } from './utils'
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -57,8 +58,8 @@ export class ObservableDocument<T extends object> {
   private isDebugEnabled = false;
 
   private _exists = false;
-  private readyPromise = Promise.resolve();
-  private readyResolveFn?: () => void;
+  private readyPromise?: Promise<T>;
+  private readyResolveFn?: (data?: T) => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
   private observedCount = 0;
@@ -183,7 +184,7 @@ export class ObservableDocument<T extends object> {
     return this._ref.delete();
   }
 
-  public ready(): Promise<void> {
+  public ready(): Promise<T> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening && this._ref) {
@@ -195,6 +196,7 @@ export class ObservableDocument<T extends object> {
       this.fetchInitialData();
     }
 
+    assert(this.readyPromise, 'Missing ready promise')
     return this.readyPromise;
   }
 
@@ -207,7 +209,7 @@ export class ObservableDocument<T extends object> {
       const readyResolve = this.readyResolveFn;
       if (readyResolve) {
         this.readyResolveFn = undefined;
-        readyResolve();
+        readyResolve(this.data);
       }
     } else {
       this.initReadyResolver();
@@ -216,8 +218,8 @@ export class ObservableDocument<T extends object> {
 
   private initReadyResolver() {
     if (!this.readyResolveFn) {
-      this.readyPromise = new Promise(resolve => {
-        this.readyResolveFn = resolve;
+      this.readyPromise = new Promise<T>(resolve => {
+        this.readyResolveFn = (data?: T) => resolve(data);
       });
     }
   }
@@ -286,8 +288,8 @@ export class ObservableDocument<T extends object> {
       this.dataObservable.set(
         exists
           ? (snapshot.data({
-              serverTimestamps: this.options.serverTimestamps
-            }) as T)
+            serverTimestamps: this.options.serverTimestamps
+          }) as T)
           : undefined
       );
 

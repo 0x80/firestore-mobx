@@ -13,7 +13,7 @@ docs](/docs/migrate-from-firestorter.md) if you are interested in the motivation
 and differences.
 
 You should be able to use this in any Javascript application including React and
-Node.js. This library has not been tested in the context of React Native yet.
+Node.js. This library has not yet been tested in the context of React Native.
 
 ## Features
 
@@ -26,8 +26,6 @@ Node.js. This library has not been tested in the context of React Native yet.
 `yarn add firestore-mobx` or `npm install firestore-mobx`
 
 ## Usage
-
-Here is a basic example:
 
 ```ts
 import { ObservableDocument, ObservableCollection } from "firestore-mobx";
@@ -43,11 +41,11 @@ const books = new ObservableCollection<Book>(
 
 /**
  * Wait for the data to become available. Alternatively you can observe the
- * author.isLoading property.
+ * author.isLoading property for asynchronous waiting.
  */
 await author.ready();
 
-if (!author.exists) {
+if (!author.hasData) {
   console.error(`Failed to find document for author ${author.id}`);
 }
 /**
@@ -56,6 +54,11 @@ if (!author.exists) {
  * or the document did not exist.
  */
 console.log(author.data);
+
+/**
+ * You can also get the data directly from the promise resolve function.
+ */
+author.ready().then(data => console.log(data));
 
 /**
  * Switch to different collection source using a collection ref

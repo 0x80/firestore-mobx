@@ -78,4 +78,33 @@ describe("Document", () => {
 
     disposeListeners();
   });
+
+
+  it("Passes data on ready when found", async () => {
+    const snapshot = await db
+      .collection(collectionName)
+      .orderBy("count", "asc")
+      .get();
+
+    const document = new ObservableDocument(db
+      .collection(collectionName));
+
+    document.id = first(snapshot.docs)?.id
+
+    return document.ready().then(data => {
+      expect(data).toEqual(first(collectionData));
+    })
+  })
+
+  it("Passes undefined on ready when not found", async () => {
+    const document = new ObservableDocument(db
+      .collection(collectionName));
+
+    document.id = '__non_existing_id'
+
+    return document.ready().then(data => {
+      expect(data).toBeUndefined();
+    })
+
+  });
 });
