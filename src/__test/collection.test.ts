@@ -3,7 +3,8 @@ import {
   initializeDataset,
   clearDataset,
   collectionName,
-  collectionData
+  collectionData,
+  TestDocumentA
 } from "./helpers/dataset";
 import { db } from "./helpers/firebase";
 import { autorun } from "mobx";
@@ -16,7 +17,7 @@ describe("testing collection", () => {
   // afterEach(() => clearDataset());
 
   test("Create a collection", async () => {
-    const collection = new ObservableCollection(db.collection(collectionName));
+    const collection = new ObservableCollection<TestDocumentA>(db.collection(collectionName));
 
     expect(collection.isLoading).toBe(true);
     expect(collection.hasDocs).toBe(false);
