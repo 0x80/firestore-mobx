@@ -99,7 +99,7 @@ export class ObservableDocument<T extends object> {
        * an ObservableCollection instance.
        */
       this._ref = source.ref;
-      this._collectionRef = source.ref.parent;
+      this._collectionRef = source.ref?.parent;
       this.sourceId = source.ref.path;
       this.logDebug("Constructor from Document<T>");
 
