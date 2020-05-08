@@ -94,13 +94,15 @@ export class ObservableDocument<T extends object> {
        */
       this.changeLoadingState(true);
     } else {
+      assert(source.ref, 'Missing ref in source')
       /**
        * Source is type Document<T>, typically passed in from the docs  data of
        * an ObservableCollection instance.
        */
       this._ref = source.ref;
+      // not sure why ref can be undefind here. Maybe a bug in gemini
       this._collectionRef = source.ref?.parent;
-      this.sourceId = source.ref.path;
+      this.sourceId = source.ref?.path;
       this.logDebug("Constructor from Document<T>");
 
       this._exists = true;
