@@ -120,12 +120,12 @@ export class ObservableDocument<T extends object> {
     );
   }
 
-  public get id(): string | undefined {
+  public get id(): string {
     return this._ref ? this._ref.id : "__no_id";
   }
 
   // @TODO rename to changeDocument? more explicit
-  public set id(documentId: string | undefined) {
+  public use(documentId: string | undefined) {
     runInAction(() => this.changeSourceViaId(documentId));
   }
 
