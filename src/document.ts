@@ -124,8 +124,7 @@ export class ObservableDocument<T extends object> {
     return this._ref ? this._ref.id : "__no_id";
   }
 
-  // @TODO rename to changeDocument? more explicit
-  public use(documentId: string | undefined) {
+  public use(documentId?: string) {
     runInAction(() => this.changeSourceViaId(documentId));
   }
 

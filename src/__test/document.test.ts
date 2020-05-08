@@ -12,9 +12,6 @@ import { autorun } from "mobx";
 describe("Document", () => {
   beforeAll(() => initializeDataset());
   afterAll(() => clearDataset());
-  // beforeEach(() => initializeDataset());
-  // afterEach(() => clearDataset());
-
 
   it("Should initialize", () => {
     const document = new ObservableDocument();
@@ -60,7 +57,7 @@ describe("Document", () => {
     const document = new ObservableDocument(db
       .collection(collectionName));
 
-    document.id = first(snapshot.docs)?.id
+    document.use(first(snapshot.docs)?.id)
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
@@ -89,7 +86,7 @@ describe("Document", () => {
     const document = new ObservableDocument(db
       .collection(collectionName));
 
-    document.id = first(snapshot.docs)?.id
+    document.use(first(snapshot.docs)?.id)
 
     return document.ready().then(data => {
       expect(data).toEqual(first(collectionData));
@@ -100,7 +97,7 @@ describe("Document", () => {
     const document = new ObservableDocument(db
       .collection(collectionName));
 
-    document.id = '__non_existing_id'
+    document.use('__non_existing_id')
 
     await document.ready().then(data => {
       expect(data).toBeUndefined();
@@ -115,13 +112,13 @@ describe("Document", () => {
 
     expect(document.id).toBe('__no_id')
 
-    document.id = '__non_existing_id'
+    document.use('__non_existing_id')
 
     await document.ready().then(() => {
       expect(document.id).toBe('__non_existing_id')
     })
 
-    document.id = undefined
+    document.use()
 
     await document.ready().then(() => {
       expect(document.id).toBe('__no_id')
