@@ -49,8 +49,8 @@ export class ObservableCollection<T extends object> {
   private options: Options = optionDefaults;
   private observedCount = 0;
   private firedInitialFetch = false;
-  private sourceId?: string;
-  private listenerSourceId?: string;
+  private sourcePath?: string;
+  private listenerSourcePath?: string;
 
   /**
    * @TODO maybe record a string of the query + reference, so we can figure out
@@ -83,7 +83,7 @@ export class ObservableCollection<T extends object> {
     if (queryCreatorFn) {
       this.queryCreatorFn = queryCreatorFn;
       this._query = hasReference(ref) ? queryCreatorFn(ref) : undefined;
-      this.sourceId = shortid.generate();
+      this.sourcePath = shortid.generate();
     }
 
     if (options) {
@@ -162,7 +162,7 @@ export class ObservableCollection<T extends object> {
       if (this.queryCreatorFn) {
         this.logDebug("Update query using new ref source");
         this._query = this.queryCreatorFn(newRef);
-        this.sourceId = shortid.generate();
+        this.sourcePath = shortid.generate();
       }
 
       if (this.isObserved) {
@@ -353,7 +353,7 @@ export class ObservableCollection<T extends object> {
 
     const hasSource = !!this._ref || !!newQuery;
     this._query = newQuery;
-    this.sourceId = shortid.generate();
+    this.sourcePath = shortid.generate();
 
     if (!hasSource) {
       if (this.isObserved) {
@@ -389,7 +389,7 @@ export class ObservableCollection<T extends object> {
     if (
       shouldListen &&
       isListening &&
-      this.sourceId === this.listenerSourceId
+      this.sourcePath === this.listenerSourcePath
     ) {
       // this.logDebug("Ignore update listeners");
       return;
@@ -399,7 +399,7 @@ export class ObservableCollection<T extends object> {
       this.logDebug("Unsubscribe listeners");
       this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
       this.onSnapshotUnsubscribeFn = undefined;
-      this.listenerSourceId = undefined;
+      this.listenerSourcePath = undefined;
     }
 
     if (shouldListen) {
@@ -423,7 +423,7 @@ export class ObservableCollection<T extends object> {
         );
       }
 
-      this.listenerSourceId = this.sourceId;
+      this.listenerSourcePath = this.sourcePath;
     }
   }
 

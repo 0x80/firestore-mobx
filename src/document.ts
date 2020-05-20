@@ -64,8 +64,8 @@ export class ObservableDocument<T extends object> {
   private options: Options = optionDefaults;
   private observedCount = 0;
   private firedInitialFetch = false;
-  private sourceId?: string;
-  private listenerSourceId?: string;
+  private sourcePath?: string;
+  private listenerSourcePath?: string;
 
   public constructor(source?: SourceType<T>, options?: Options) {
     this._debug_id = shortid.generate();
@@ -81,12 +81,12 @@ export class ObservableDocument<T extends object> {
       // do nothing?
     } else if (isCollectionReference<T>(source)) {
       this._collectionRef = source;
-      this.sourceId = source.path;
+      this.sourcePath = source.path;
       this.logDebug("Constructor from collection reference");
     } else if (isDocumentReference<T>(source)) {
       this._ref = source;
       this._collectionRef = source.parent;
-      this.sourceId = source.path;
+      this.sourcePath = source.path;
       this.logDebug("Constructor from document reference");
       /**
        * In this case we have data to wait on from the start. So initialize the
@@ -102,7 +102,7 @@ export class ObservableDocument<T extends object> {
       this._ref = source.ref;
       // not sure why ref can be undefind here. Maybe a bug in gemini
       this._collectionRef = source.ref?.parent;
-      this.sourceId = source.ref?.path;
+      this.sourcePath = source.ref?.path;
       this.logDebug("Constructor from Document<T>");
 
       this._exists = true;
@@ -320,7 +320,7 @@ export class ObservableDocument<T extends object> {
 
     this.logDebug(`Change source via ref to ${ref ? ref.path : undefined}`);
     this._ref = ref;
-    this.sourceId = newPath;
+    this.sourcePath = newPath;
     this.firedInitialFetch = false;
 
     const hasSource = !!ref;
@@ -362,7 +362,7 @@ export class ObservableDocument<T extends object> {
 
     this.logDebug(`Change source via id to ${newPath}`);
     this._ref = newRef;
-    this.sourceId = newPath;
+    this.sourcePath = newPath;
     this.firedInitialFetch = false;
 
     const hasSource = !!newRef;
@@ -406,7 +406,7 @@ export class ObservableDocument<T extends object> {
     if (
       shouldListen &&
       isListening &&
-      this.sourceId === this.listenerSourceId
+      this.sourcePath === this.listenerSourcePath
     ) {
       // this.logDebug("Ignore update listeners");
       return;
@@ -417,7 +417,7 @@ export class ObservableDocument<T extends object> {
 
       this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
       this.onSnapshotUnsubscribeFn = undefined;
-      this.listenerSourceId = undefined;
+      this.listenerSourcePath = undefined;
     }
 
     if (shouldListen) {
@@ -432,7 +432,7 @@ export class ObservableDocument<T extends object> {
         err => this.onSnapshotError(err)
       );
 
-      this.listenerSourceId = this.sourceId;
+      this.listenerSourcePath = this.sourcePath;
     }
   }
 
