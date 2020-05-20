@@ -126,7 +126,7 @@ export class ObservableDocument<T extends object> {
     return this._ref ? this._ref.id : "__no_id";
   }
 
-  public use(documentId?: string) {
+  public attachTo(documentId?: string) {
     runInAction(() => this.changeSourceViaId(documentId));
   }
 
