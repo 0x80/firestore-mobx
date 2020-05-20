@@ -9,7 +9,7 @@ import {
 import { firestore } from "firebase";
 import { Document } from "./document";
 import shortid from "shortid";
-import { executeFromCount } from "./utils";
+import { executeFromCount, assert } from "./utils";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -69,6 +69,8 @@ export class ObservableCollection<T extends object> {
   ) {
     this._debug_id = shortid.generate();
     this.logDebug("Constructor");
+
+    this.initializeReadyPromise();
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
      * because then we could make a single source parameter
@@ -196,6 +198,7 @@ export class ObservableCollection<T extends object> {
        * no listeners are set up, we treat ready() as a one time fetch request,
        * so data is available after awaiting the promise.
        */
+      this.logDebug('Ready call without listeners => fetch')
       this.fetchInitialData();
     }
 
@@ -205,21 +208,20 @@ export class ObservableCollection<T extends object> {
   private changeReady(isReady: boolean) {
     if (isReady) {
       const readyResolve = this.readyResolveFn;
-      if (readyResolve) {
-        this.readyResolveFn = undefined;
-        readyResolve();
-      }
-    } else {
-      this.initReadyResolver();
+      assert(readyResolve, 'Missing ready resolve function')
+
+      this.logDebug('Call ready resolve')
+      readyResolve();
+
+      this.initializeReadyPromise()
     }
   }
 
-  private initReadyResolver() {
-    if (!this.readyResolveFn) {
-      this.readyPromise = new Promise(resolve => {
-        this.readyResolveFn = resolve;
-      });
-    }
+  private initializeReadyPromise() {
+    this.logDebug('Initialize new ready promise')
+    this.readyPromise = new Promise(resolve => {
+      this.readyResolveFn = resolve;
+    });
   }
 
   private fetchInitialData() {
