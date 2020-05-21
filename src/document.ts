@@ -9,7 +9,6 @@ import {
 import { firestore } from "firebase";
 import shortid from "shortid";
 import { assert } from './utils'
-import { consoleInspect } from "./__test/helpers/console";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -315,8 +314,6 @@ export class ObservableDocument<T extends object> {
           serverTimestamps: this.options.serverTimestamps
         }) as T)
         : undefined
-
-      consoleInspect('data from snapshot', data)
 
       this.dataObservable.set(data)
 
