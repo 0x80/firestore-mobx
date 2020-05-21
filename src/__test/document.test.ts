@@ -3,11 +3,13 @@ import {
   initializeDataset,
   clearDataset,
   collectionName,
-  collectionData
+  collectionData,
+  TestDocumentA
 } from "./helpers/dataset";
 import { db } from "./helpers/firebase";
 import { first } from "lodash";
-import { autorun } from "mobx";
+import { autorun, toJS } from "mobx";
+// import { consoleInspect } from "./helpers/console";
 
 describe("Document", () => {
   beforeAll(() => initializeDataset());
@@ -77,24 +79,68 @@ describe("Document", () => {
   });
 
 
-  it("Passes data on ready when found", async () => {
+  it("Should return data on ready without listeners", async () => {
     const snapshot = await db
       .collection(collectionName)
       .orderBy("count", "asc")
       .get();
 
-    const document = new ObservableDocument(db
-      .collection(collectionName));
+    const document = new ObservableDocument<TestDocumentA>(db
+      .collection(collectionName), { debug: false });
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(false);
+    expect(document.data).toBeUndefined();
 
     document.attachTo(first(snapshot.docs)?.id)
 
-    return document.ready().then(data => {
-      expect(data).toEqual(first(collectionData));
-    })
+    expect(document.isLoading).toBe(true);
+    expect(document.hasData).toBe(false);
+
+    const data = await document.ready()
+
+    // consoleInspect('data', data)
+    expect(toJS(data)).toEqual(first(collectionData));
+  })
+
+  it("Should return data on ready with listeners", async () => {
+    const snapshot = await db
+      .collection(collectionName)
+      .orderBy("count", "asc")
+      .get();
+
+    const document = new ObservableDocument<TestDocumentA>(db
+      .collection(collectionName), { debug: false });
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(false);
+    expect(document.data).toBeUndefined();
+
+    // consoleInspect('snapshot', snapshot.docs.map(doc => doc.data))
+
+    document.attachTo(first(snapshot.docs)?.id)
+
+    expect(document.isLoading).toBe(true);
+    expect(document.hasData).toBe(false);
+
+    const disposeListeners = autorun(() => {
+      console.log("isLoading", document.isLoading);
+    });
+
+    document.ready().then(data => {
+      expect(toJS(data)).toEqual(first(collectionData));
+    }).catch(err => console.error(err))
+
+    const data = await document.ready()
+
+    // consoleInspect('data', doc?.data)
+    expect(toJS(data)).toEqual(first(collectionData));
+
+    disposeListeners();
   })
 
   it("Passes undefined on ready when not found", async () => {
-    const document = new ObservableDocument(db
+    const document = new ObservableDocument<TestDocumentA>(db
       .collection(collectionName));
 
     document.attachTo('__non_existing_id')
@@ -102,27 +148,45 @@ describe("Document", () => {
     await document.ready().then(data => {
       expect(data).toBeUndefined();
     })
-
   });
 
 
   it("Should have a fallback id", async () => {
-    const document = new ObservableDocument(db
-      .collection(collectionName));
+    const document = new ObservableDocument<TestDocumentA>(db
+      .collection(collectionName), { debug: false });
 
     expect(document.id).toBe('__no_id')
 
     document.attachTo('__non_existing_id')
 
-    await document.ready().then(() => {
+    await document.ready().then((doc) => {
+      expect(doc).toBe(undefined)
       expect(document.id).toBe('__non_existing_id')
     })
 
     document.attachTo()
 
-    await document.ready().then(() => {
+    await document.ready().then((doc) => {
+      expect(doc).toBe(undefined)
       expect(document.id).toBe('__no_id')
     })
 
   });
+
+  it("Should return the same data on ready multiple times", async () => {
+    const snapshot = await db
+      .collection(collectionName)
+      .orderBy("count", "asc")
+      .get();
+
+    // document.attachTo(first(snapshot.docs)?.id)
+    const document = new ObservableDocument<TestDocumentA>(db
+      .collection(collectionName).doc(first(snapshot.docs)?.id), { debug: false });
+
+    const dataA = await document.ready()
+    const dataB = await document.ready()
+
+    expect(toJS(dataA)).toStrictEqual(toJS(dataB))
+  })
+
 });

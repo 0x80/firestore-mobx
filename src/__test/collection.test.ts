@@ -16,7 +16,7 @@ describe("testing collection", () => {
   // beforeEach(() => initializeDataset());
   // afterEach(() => clearDataset());
 
-  test("Create a collection", async () => {
+  it("Should create a collection", async () => {
     const collection = new ObservableCollection<TestDocumentA>(db.collection(collectionName));
 
     expect(collection.isLoading).toBe(true);
@@ -27,7 +27,12 @@ describe("testing collection", () => {
       console.log("isLoading", collection.isLoading);
     });
 
-    await collection.ready();
+    const docs = await collection.ready();
+    expect(docs.map(doc => doc.data)).toEqual(
+      expect.arrayContaining(collectionData)
+    );
+
+    expect(docs.length).toBe(collectionData.length);
 
     expect(collection.isLoading).toBe(false);
     expect(collection.hasDocs).toBe(true);
@@ -38,4 +43,7 @@ describe("testing collection", () => {
 
     disposeListeners();
   });
+
+
+
 });

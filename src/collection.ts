@@ -158,6 +158,8 @@ export class ObservableCollection<T extends object> {
     this.firedInitialFetch = false;
     this._ref = newRef;
 
+    this.initializeReadyPromise();
+
     if (hasReference(newRef)) {
       if (this.queryCreatorFn) {
         this.logDebug("Update query using new ref source");
@@ -208,14 +210,25 @@ export class ObservableCollection<T extends object> {
   }
 
   private changeReady(isReady: boolean) {
+    this.logDebug(`Change ready ${isReady}`)
+
     if (isReady) {
       const readyResolve = this.readyResolveFn;
       assert(readyResolve, 'Missing ready resolve function')
 
       this.logDebug('Call ready resolve')
+
       readyResolve(this.docs);
 
-      this.initializeReadyPromise()
+      /**
+        * After the first promise has been resolved we want subsequent calls to
+        * ready() to immediately return with the available data. Ready is only
+        * meant to be used for initial data fetching
+        *
+        * @TODO change document to data maybe because data is observable so it
+        * won't get stale.
+        */
+      this.readyPromise = Promise.resolve(this.docs)
     }
   }
 
@@ -430,11 +443,11 @@ export class ObservableCollection<T extends object> {
   }
 
   private changeLoadingState(isLoading: boolean) {
-    const wasLoading = this.isLoading;
-    if (wasLoading === isLoading) {
-      // this.logDebug(`Ignore change loading state: ${isLoading}`);
-      return;
-    }
+    // const wasLoading = this.isLoading;
+    // if (wasLoading === isLoading) {
+    //   // this.logDebug(`Ignore change loading state: ${isLoading}`);
+    //   return;
+    // }
 
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
