@@ -43,8 +43,8 @@ export class ObservableCollection<T extends object> {
   private _query?: firestore.Query;
   private queryCreatorFn?: QueryCreatorFn;
   private isDebugEnabled = false;
-  private readyPromise = Promise.resolve();
-  private readyResolveFn?: () => void;
+  private readyPromise?: Promise<Document<T>[]>;
+  private readyResolveFn?: (docs: Document<T>[]) => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
   private observedCount = 0;
@@ -189,7 +189,7 @@ export class ObservableCollection<T extends object> {
     return this._ref.add(data);
   }
 
-  public ready(): Promise<void> {
+  public ready(): Promise<Document<T>[]> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening) {
@@ -202,6 +202,8 @@ export class ObservableCollection<T extends object> {
       this.fetchInitialData();
     }
 
+    assert(this.readyPromise, 'Missing ready promise')
+
     return this.readyPromise;
   }
 
@@ -211,7 +213,7 @@ export class ObservableCollection<T extends object> {
       assert(readyResolve, 'Missing ready resolve function')
 
       this.logDebug('Call ready resolve')
-      readyResolve();
+      readyResolve(this.docs);
 
       this.initializeReadyPromise()
     }
