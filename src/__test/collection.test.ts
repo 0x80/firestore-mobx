@@ -9,9 +9,15 @@ import {
 import { db } from "./helpers/firebase";
 import { autorun } from "mobx";
 
-describe("testing collection", () => {
-  beforeAll(() => initializeDataset());
-  afterAll(() => clearDataset());
+describe("Collection", () => {
+  beforeAll(async () => {
+    await db.enableNetwork();
+    await initializeDataset()
+  });
+  afterAll(async () => {
+    await db.disableNetwork();
+    await clearDataset()
+  });
 
   // beforeEach(() => initializeDataset());
   // afterEach(() => clearDataset());

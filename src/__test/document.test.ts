@@ -12,8 +12,16 @@ import { autorun, toJS } from "mobx";
 // import { consoleInspect } from "./helpers/console";
 
 describe("Document", () => {
-  beforeAll(() => initializeDataset());
-  afterAll(() => clearDataset());
+
+  // Try to solve this https://github.com/facebook/jest/issues/7287
+  beforeAll(async () => {
+    await db.enableNetwork();
+    await initializeDataset()
+  });
+  afterAll(async () => {
+    await db.disableNetwork();
+    await clearDataset()
+  });
 
   it("Should initialize", () => {
     const document = new ObservableDocument();
