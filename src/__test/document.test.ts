@@ -57,7 +57,7 @@ describe("Document", () => {
     const document = new ObservableDocument(db
       .collection(collectionName));
 
-    document.use(first(snapshot.docs)?.id)
+    document.attachTo(first(snapshot.docs)?.id)
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
@@ -86,7 +86,7 @@ describe("Document", () => {
     const document = new ObservableDocument(db
       .collection(collectionName));
 
-    document.use(first(snapshot.docs)?.id)
+    document.attachTo(first(snapshot.docs)?.id)
 
     return document.ready().then(data => {
       expect(data).toEqual(first(collectionData));
@@ -97,7 +97,7 @@ describe("Document", () => {
     const document = new ObservableDocument(db
       .collection(collectionName));
 
-    document.use('__non_existing_id')
+    document.attachTo('__non_existing_id')
 
     await document.ready().then(data => {
       expect(data).toBeUndefined();
@@ -112,13 +112,13 @@ describe("Document", () => {
 
     expect(document.id).toBe('__no_id')
 
-    document.use('__non_existing_id')
+    document.attachTo('__non_existing_id')
 
     await document.ready().then(() => {
       expect(document.id).toBe('__non_existing_id')
     })
 
-    document.use()
+    document.attachTo()
 
     await document.ready().then(() => {
       expect(document.id).toBe('__no_id')
