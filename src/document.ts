@@ -58,8 +58,8 @@ export class ObservableDocument<T extends object> {
   private isDebugEnabled = false;
 
   private _exists = false;
-  private readyPromise?: Promise<T>;
-  private readyResolveFn?: (data?: T) => void;
+  private readyPromise?: Promise<Document<T>>;
+  private readyResolveFn?: (doc?: Document<T>) => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
   private observedCount = 0;
@@ -76,6 +76,8 @@ export class ObservableDocument<T extends object> {
       this.options = { ...optionDefaults, ...options };
       this.isDebugEnabled = options.debug || false;
     }
+
+    this.initializeReadyPromise()
 
     if (!source) {
       // do nothing?
@@ -100,7 +102,7 @@ export class ObservableDocument<T extends object> {
        * an ObservableCollection instance.
        */
       this._ref = source.ref;
-      // not sure why ref can be undefind here. Maybe a bug in gemini
+      // not sure why ref can be undefined here. Maybe a bug in gemini
       this._collectionRef = source.ref?.parent;
       this.sourcePath = source.ref?.path;
       this.logDebug("Constructor from Document<T>");
@@ -185,7 +187,7 @@ export class ObservableDocument<T extends object> {
     return this._ref.delete();
   }
 
-  public ready(): Promise<T> {
+  public ready(): Promise<Document<T>> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening && this._ref) {
@@ -194,10 +196,12 @@ export class ObservableDocument<T extends object> {
        * no listeners are set up, we treat ready() as a one time fetch request,
        * so data is available after awaiting the promise.
        */
+      this.logDebug('Ready call without listeners => fetch')
       this.fetchInitialData();
     }
 
     assert(this.readyPromise, 'Missing ready promise')
+
     return this.readyPromise;
   }
 
@@ -208,21 +212,25 @@ export class ObservableDocument<T extends object> {
   private changeReady(isReady: boolean) {
     if (isReady) {
       const readyResolve = this.readyResolveFn;
-      if (readyResolve) {
-        this.readyResolveFn = undefined;
-        readyResolve(this.data);
+      assert(readyResolve, 'Missing ready resolve function')
+
+      this.logDebug('Call ready resolve')
+
+      if (this.data) {
+        readyResolve({ data: this.data, id: this.id, ref: this._ref! });
+      } else {
+        readyResolve();
       }
-    } else {
-      this.initReadyResolver();
+
+      this.initializeReadyPromise()
     }
   }
 
-  private initReadyResolver() {
-    if (!this.readyResolveFn) {
-      this.readyPromise = new Promise<T>(resolve => {
-        this.readyResolveFn = (data?: T) => resolve(data);
-      });
-    }
+  private initializeReadyPromise() {
+    this.logDebug('Initialize new ready promise')
+    this.readyPromise = new Promise(resolve => {
+      this.readyResolveFn = resolve;
+    });
   }
 
   private fetchInitialData() {
