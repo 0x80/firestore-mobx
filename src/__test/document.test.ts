@@ -10,12 +10,10 @@ import { db } from "./helpers/firebase";
 import { first } from "lodash";
 import { autorun, toJS, configure } from "mobx";
 
-/**
- * Enable MobX strict mode
- *
- * @TODO make it even more strict by setting "always" instead of "observed".
- */
-configure({ enforceActions: "observed" });
+
+configure({
+  enforceActions: "never",
+});
 
 
 // import { consoleInspect } from "./helpers/console";
@@ -23,13 +21,15 @@ configure({ enforceActions: "observed" });
 describe("Document", () => {
 
   // Try to solve this https://github.com/facebook/jest/issues/7287
-  beforeAll(async () => {
-    await db.enableNetwork();
+  beforeAll(async (done) => {
+    // await db.enableNetwork();
     await initializeDataset()
+    done()
   });
-  afterAll(async () => {
-    await db.disableNetwork();
+  afterAll(async (done) => {
+    // await db.disableNetwork();
     await clearDataset()
+    done()
   });
 
   it("Should initialize", () => {

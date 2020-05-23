@@ -10,22 +10,22 @@ import { db } from "./helpers/firebase";
 import { autorun, configure } from "mobx";
 
 
-/**
- * Enable MobX strict mode
- *
- * @TODO make it even more strict by setting "always" instead of "observed".
- */
-configure({ enforceActions: "observed" });
+
+configure({
+  enforceActions: "never",
+});
 
 
 describe("Collection", () => {
-  beforeAll(async () => {
-    await db.enableNetwork();
+  beforeAll(async (done) => {
+    // await db.enableNetwork();
     await initializeDataset()
+    done()
   });
-  afterAll(async () => {
-    await db.disableNetwork();
+  afterAll(async (done) => {
+    // await db.disableNetwork();
     await clearDataset()
+    done()
   });
 
   // beforeEach(() => initializeDataset());
