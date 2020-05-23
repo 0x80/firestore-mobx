@@ -34,7 +34,7 @@ function hasReference(
   return !!ref;
 }
 
-export class ObservableCollection<T extends object> {
+export class ObservableCollection<T> {
   @observable private docsObservable = observable.array([] as Document<T>[]);
   @observable private isLoadingObservable = observable.box(false);
 
@@ -114,28 +114,29 @@ export class ObservableCollection<T extends object> {
   }
 
   @computed
-  public get isEmpty() {
+  public get isEmpty(): boolean {
     return this.docsObservable.length === 0;
   }
 
   @computed
-  public get hasDocs() {
+  public get hasDocs(): boolean {
     return this.docsObservable.length > 0;
   }
 
-  public get isLoading() {
+  public get isLoading(): boolean {
     return this.isLoadingObservable.get();
   }
 
-  public get isObserved() {
+  @computed
+  public get isObserved(): boolean {
     return this.observedCount > 0;
   }
 
-  public get path() {
+  public get path(): string | undefined {
     return this._ref ? this._ref.path : undefined;
   }
 
-  public get ref() {
+  public get ref(): firestore.CollectionReference | undefined {
     return this._ref;
   }
 
@@ -184,7 +185,7 @@ export class ObservableCollection<T extends object> {
     }
   }
 
-  public async add(data: T) {
+  public async add(data: T): Promise<firestore.DocumentReference<firestore.DocumentData>> {
     if (!hasReference(this._ref)) {
       throw new Error(`Can not add a document to a collection that has no ref`);
     }
@@ -275,7 +276,7 @@ export class ObservableCollection<T extends object> {
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates = (context: string) => {
+  private resumeUpdates(context: string) {
     this.observedCount += 1;
 
     this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
@@ -286,7 +287,7 @@ export class ObservableCollection<T extends object> {
     }
   };
 
-  private suspendUpdates = (context: string) => {
+  private suspendUpdates(context: string) {
     this.observedCount -= 1;
 
     this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);

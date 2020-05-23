@@ -4,7 +4,8 @@ import {
   IObservableValue,
   onBecomeObserved,
   onBecomeUnobserved,
-  toJS
+  toJS,
+  computed
 } from "mobx";
 import { firestore } from "firebase";
 import shortid from "shortid";
@@ -49,7 +50,7 @@ type SourceType<T> =
   | firestore.CollectionReference
   | Document<T>;
 
-export class ObservableDocument<T extends object> {
+export class ObservableDocument<T> {
   @observable private dataObservable: IObservableValue<T | undefined>;
   @observable private isLoadingObservable: IObservableValue<boolean>;
 
@@ -131,14 +132,15 @@ export class ObservableDocument<T extends object> {
     return this._ref ? this._ref.id : "__no_id";
   }
 
-  public attachTo(documentId?: string) {
+  public attachTo(documentId?: string): void {
     runInAction(() => this.changeSourceViaId(documentId));
   }
 
-  public get data() {
+  public get data(): T | undefined {
     return this.dataObservable.get()
   }
 
+  @computed
   public get document(): Document<T> | undefined {
     const data = this.dataObservable.get()
 
@@ -156,15 +158,15 @@ export class ObservableDocument<T extends object> {
     };
   }
 
-  public get isLoading() {
+  public get isLoading(): boolean {
     return this.isLoadingObservable.get();
   }
 
-  public get isObserved() {
+  public get isObserved(): boolean {
     return this.observedCount > 0;
   }
 
-  public get ref() {
+  public get ref(): firestore.DocumentReference | undefined {
     return this._ref;
   }
 
@@ -172,7 +174,7 @@ export class ObservableDocument<T extends object> {
     runInAction(() => this.changeSourceViaRef(ref));
   }
 
-  public get path() {
+  public get path(): string | undefined {
     return this._ref ? this._ref.path : undefined;
   }
 
@@ -217,7 +219,7 @@ export class ObservableDocument<T extends object> {
     return this.readyPromise;
   }
 
-  public get hasData() {
+  public get hasData(): boolean {
     return this._exists;
   }
 
@@ -242,11 +244,6 @@ export class ObservableDocument<T extends object> {
         */
       this.readyPromise = Promise.resolve(this.data)
     }
-  }
-
-  public callReady() {
-    assert(this.readyResolveFn, 'No ready resolve function')
-    this.readyResolveFn();
   }
 
   private initializeReadyPromise() {
@@ -281,7 +278,7 @@ export class ObservableDocument<T extends object> {
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates = (context: string) => {
+  private resumeUpdates(context: string) {
     this.observedCount += 1;
 
     this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
@@ -292,7 +289,7 @@ export class ObservableDocument<T extends object> {
     }
   };
 
-  private suspendUpdates = (context: string) => {
+  private suspendUpdates(context: string) {
     this.observedCount -= 1;
 
     this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);

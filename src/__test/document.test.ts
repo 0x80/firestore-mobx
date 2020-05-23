@@ -8,7 +8,16 @@ import {
 } from "./helpers/dataset";
 import { db } from "./helpers/firebase";
 import { first } from "lodash";
-import { autorun, toJS } from "mobx";
+import { autorun, toJS, configure } from "mobx";
+
+/**
+ * Enable MobX strict mode
+ *
+ * @TODO make it even more strict by setting "strict" instead of "observed".
+ */
+configure({ enforceActions: "always" });
+
+
 // import { consoleInspect } from "./helpers/console";
 
 describe("Document", () => {
