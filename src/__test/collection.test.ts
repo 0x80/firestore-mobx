@@ -7,7 +7,16 @@ import {
   TestDocumentA
 } from "./helpers/dataset";
 import { db } from "./helpers/firebase";
-import { autorun } from "mobx";
+import { autorun, configure } from "mobx";
+
+
+/**
+ * Enable MobX strict mode
+ *
+ * @TODO make it even more strict by setting "always" instead of "observed".
+ */
+configure({ enforceActions: "observed" });
+
 
 describe("Collection", () => {
   beforeAll(async () => {

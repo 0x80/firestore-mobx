@@ -13,9 +13,9 @@ import { autorun, toJS, configure } from "mobx";
 /**
  * Enable MobX strict mode
  *
- * @TODO make it even more strict by setting "strict" instead of "observed".
+ * @TODO make it even more strict by setting "always" instead of "observed".
  */
-configure({ enforceActions: "always" });
+configure({ enforceActions: "observed" });
 
 
 // import { consoleInspect } from "./helpers/console";
