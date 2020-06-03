@@ -225,9 +225,6 @@ export class ObservableCollection<T> {
         * After the first promise has been resolved we want subsequent calls to
         * ready() to immediately return with the available data. Ready is only
         * meant to be used for initial data fetching
-        *
-        * @TODO change document to data maybe because data is observable so it
-        * won't get stale.
         */
       this.readyPromise = Promise.resolve(this.docs)
     }
