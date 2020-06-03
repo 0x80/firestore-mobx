@@ -35,10 +35,11 @@ function hasReference(
 }
 
 export class ObservableCollection<T> {
-  @observable private docsObservable = observable.array([] as Document<T>[]);
-  @observable private isLoadingObservable = observable.box(false);
+  private _debug_id = shortid.generate();
 
-  private _debug_id: string;
+  @observable private docsObservable = observable([] as Document<T>[], { name: `${this._debug_id}_docs` });
+  @observable private isLoadingObservable = observable.box(false, { name: `${this._debug_id}_isLoading` });
+
   private _ref?: firestore.CollectionReference;
   private _query?: firestore.Query;
   private queryCreatorFn?: QueryCreatorFn;
@@ -67,7 +68,6 @@ export class ObservableCollection<T> {
     queryCreatorFn?: QueryCreatorFn,
     options?: Options
   ) {
-    this._debug_id = shortid.generate();
     this.logDebug("Constructor");
 
     this.initializeReadyPromise();

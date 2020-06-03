@@ -71,8 +71,8 @@ export class ObservableDocument<T> {
 
   public constructor(source?: SourceType<T>, options?: Options) {
     this._debug_id = shortid.generate();
-    this.dataObservable = observable.box(undefined, { deep: false });
-    this.isLoadingObservable = observable.box(false);
+    this.dataObservable = observable.box(undefined, { deep: false, name: `${this._debug_id}_data` });
+    this.isLoadingObservable = observable.box(false, { name: `${this._debug_id}_isLoading` });
 
     if (options) {
       this.options = { ...optionDefaults, ...options };
