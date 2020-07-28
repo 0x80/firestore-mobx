@@ -16,8 +16,7 @@
     "test": "jest --env node --maxWorkers 1",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\"",
-    "preinstall": "touch ./node_modules/.metadata_never_index",
-    "postinstall": "yarn install-peers"
+    "postinstall": "touch ./node_modules/.metadata_never_index && yarn install-peers"
   },
   "repository": {
     "type": "git",
