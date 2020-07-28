@@ -15,7 +15,9 @@
     "emulate": "firebase emulators:start --only firestore",
     "test": "jest --env node --maxWorkers 1",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,md,json,yml}\" \"*.{js,json,md,yml}\"",
+    "preinstall": "touch ./node_modules/.metadata_never_index",
+    "postinstall": "yarn install-peers"
   },
   "repository": {
     "type": "git",
