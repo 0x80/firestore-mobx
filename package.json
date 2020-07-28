@@ -1,6 +1,6 @@
 {
   "name": "firestore-mobx",
-  "version": "2.0.0-2",
+  "version": "2.0.0-3",
   "description": "Observable Firestore documents and collections using MobX",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
