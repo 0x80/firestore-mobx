@@ -57,6 +57,9 @@ export class ObservableCollection<T> {
   private sourcePath?: string;
   private listenerSourcePath?: string;
 
+  onError?: (err: Error) => void;
+  onDocs?: (docs?: Document<T>[]) => void;
+
   /**
    * @TODO maybe record a string of the query + reference, so we can figure out
    * if the current listeners belong to that combination or we need to update
@@ -193,7 +196,12 @@ export class ObservableCollection<T> {
     data: T,
   ): Promise<firestore.DocumentReference<firestore.DocumentData>> {
     if (!hasReference(this._ref)) {
-      throw new Error(`Can not add a document to a collection that has no ref`);
+      this.handleError(
+        new Error(`Can not add a document to a collection that has no ref`),
+      );
+      return Promise.reject(
+        `Can not add a document to a collection that has no ref`,
+      );
     }
     return this._ref.add(data);
   }
@@ -250,7 +258,10 @@ export class ObservableCollection<T> {
     }
 
     if (!this._ref) {
-      throw Error("Can not fetch data without a collection reference");
+      this.handleError(
+        new Error("Can not fetch data without a collection reference"),
+      );
+      return;
     }
 
     this.logDebug("Fetch initial data");
@@ -265,14 +276,18 @@ export class ObservableCollection<T> {
         .get()
         .then((snapshot) => this.handleSnapshot(snapshot))
         .catch((err) =>
-          console.error(`Fetch initial data failed: ${err.message}`),
+          this.handleError(
+            new Error(`Fetch initial data failed: ${err.message}`),
+          ),
         );
     } else {
       this._ref
         .get()
         .then((snapshot) => this.handleSnapshot(snapshot))
         .catch((err) =>
-          console.error(`Fetch initial data failed: ${err.message}`),
+          this.handleError(
+            new Error(`Fetch initial data failed: ${err.message}`),
+          ),
         );
     }
 
@@ -301,6 +316,14 @@ export class ObservableCollection<T> {
     }
   }
 
+  private handleError(err: Error) {
+    if (typeof this.onError === "function") {
+      this.onError(err);
+    } else {
+      throw err;
+    }
+  }
+
   private handleSnapshot(snapshot: firestore.QuerySnapshot) {
     this.logDebug(
       `handleSnapshot, ${Date.now()} docs.length: ${snapshot.docs.length}`,
@@ -323,22 +346,22 @@ export class ObservableCollection<T> {
     // });
 
     runInAction(() => {
-      this.docsObservable.replace(
-        snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ref: doc.ref,
-          data: doc.data({
-            serverTimestamps: this.options.serverTimestamps,
-          }) as T,
-        })),
-      );
+      const docs: Document<T>[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ref: doc.ref,
+        data: doc.data({
+          serverTimestamps: this.options.serverTimestamps,
+        }) as T,
+      }));
+
+      this.docsObservable.replace(docs);
+
+      if (typeof this.onDocs === "function") {
+        this.onDocs(docs);
+      }
 
       this.changeLoadingState(false);
     });
-  }
-
-  private handleSnapshotError(err: Error) {
-    throw new Error(`${this.path} snapshot error: ${err.message}`);
   }
 
   public set query(queryCreatorFn: QueryCreatorFn | undefined) {
@@ -430,7 +453,7 @@ export class ObservableCollection<T> {
             (snapshot) => this.handleSnapshot(snapshot),
             this.options.ignoreInitialSnapshot ? 1 : 0,
           ),
-          (err) => this.handleSnapshotError(err),
+          (err) => this.handleError(err),
         );
       } else if (this._ref) {
         this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
@@ -438,7 +461,7 @@ export class ObservableCollection<T> {
             (snapshot) => this.handleSnapshot(snapshot),
             this.options.ignoreInitialSnapshot ? 1 : 0,
           ),
-          (err) => this.handleSnapshotError(err),
+          (err) => this.handleError(err),
         );
       }
 
