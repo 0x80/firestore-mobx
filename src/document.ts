@@ -69,6 +69,9 @@ export class ObservableDocument<T> {
   private sourcePath?: string;
   private listenerSourcePath?: string;
 
+  onError?: (err: Error) => void;
+  onData?: (data?: T) => void;
+
   public constructor(source?: SourceType<T>, options?: Options) {
     this._debug_id = shortid.generate();
     this.dataObservable = observable.box(undefined, {
@@ -313,12 +316,20 @@ export class ObservableDocument<T> {
 
       this.dataObservable.set(data);
 
+      if (typeof this.onData === "function") {
+        this.onData(data);
+      }
+
       this.changeLoadingState(false);
     });
   }
 
-  private onSnapshotError(err: Error) {
-    throw new Error(`${this.path} onSnapshotError: ${err.message}`);
+  private handleError(err: Error) {
+    if (typeof this.onError === "function") {
+      this.onError(err);
+    } else {
+      throw err;
+    }
   }
 
   private changeSourceViaRef(ref?: firestore.DocumentReference) {
@@ -360,9 +371,12 @@ export class ObservableDocument<T> {
 
   private changeSourceViaId(documentId?: string) {
     if (!this._collectionRef) {
-      throw new Error(
-        `Can not change source via id if there is no known collection reference`,
+      this.handleError(
+        new Error(
+          `Can not change source via id if there is no known collection reference`,
+        ),
       );
+      return;
     }
 
     if (this.id === documentId) {
@@ -445,7 +459,7 @@ export class ObservableDocument<T> {
 
       this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
         (snapshot) => this.handleSnapshot(snapshot),
-        (err) => this.onSnapshotError(err),
+        (err) => this.handleError(err),
       );
 
       this.listenerSourcePath = this.sourcePath;
