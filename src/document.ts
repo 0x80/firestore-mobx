@@ -194,7 +194,7 @@ export class ObservableDocument<T> {
     if (!this._ref) {
       throw Error("Can not set data on document with undefined ref");
     }
-    return this._ref.set(data, options);
+    return this._ref.set(data, options || {});
   }
 
   public delete(): Promise<void> {
