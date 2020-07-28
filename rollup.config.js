@@ -5,21 +5,21 @@ export default {
   output: [
     {
       file: pkg.main,
-      format: "cjs"
+      format: "cjs",
     },
     {
       file: pkg.module,
-      format: "es"
-    }
+      format: "es",
+    },
   ],
   external: [
     ...Object.keys(pkg.dependencies || {}),
-    ...Object.keys(pkg.peerDependencies || {})
+    ...Object.keys(pkg.peerDependencies || {}),
   ],
   plugins: [
     typescript({
       // eslint-disable-next-line
-      typescript: require("typescript")
-    })
-  ]
+      typescript: require("typescript"),
+    }),
+  ],
 };

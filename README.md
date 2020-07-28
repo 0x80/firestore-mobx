@@ -31,12 +31,12 @@ Node.js. This library has not yet been tested in the context of React Native.
 import { ObservableDocument, ObservableCollection } from "firestore-mobx";
 
 const author = new ObservableDocument<Author>(
-  firestore.doc(`authors/${authorId}`)
+  firestore.doc(`authors/${authorId}`),
 );
 
 const books = new ObservableCollection<Book>(
   firestore.collection(`authors/${authorId}/books`),
-  ref => ref.orderBy("title", "asc")
+  (ref) => ref.orderBy("title", "asc"),
 );
 
 /**
@@ -58,7 +58,7 @@ console.log(author.data);
 /**
  * You can also get the data directly from the promise resolve function.
  */
-author.ready().then(data => console.log(data));
+author.ready().then((data) => console.log(data));
 
 /**
  * Switch to different collection source using a collection ref
@@ -69,7 +69,7 @@ books.ref = firestore.collection(`authors/${differentAuthorId}/books`);
  * Change the query of a collection by passing a new "query creator function".
  * This function is called with the current collection ref to create a new query.
  */
-books.query = ref => ref.orderBy("publishedAt", "desc");
+books.query = (ref) => ref.orderBy("publishedAt", "desc");
 
 /**
  * Wait for the data to become available. Alternatively you can observe the
@@ -85,7 +85,7 @@ if (books.empty) {
  * Get the data. It will be typed on the schema that you passed to the
  * constructor, wrapped in a Document type which has properties id, data, ref.
  */
-books.docs.forEach(doc => console.log(doc.data));
+books.docs.forEach((doc) => console.log(doc.data));
 ```
 
 ## API

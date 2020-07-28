@@ -5,11 +5,11 @@ import {
   onBecomeObserved,
   onBecomeUnobserved,
   toJS,
-  computed
+  computed,
 } from "mobx";
 import { firestore } from "firebase";
 import shortid from "shortid";
-import { assert } from './utils'
+import { assert } from "./utils";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -18,7 +18,7 @@ interface Options {
 
 const optionDefaults: Options = {
   serverTimestamps: "estimate",
-  debug: false
+  debug: false,
 };
 
 export interface Document<T> {
@@ -28,19 +28,19 @@ export interface Document<T> {
 }
 
 function isDocumentReference<T>(
-  source: SourceType<T>
+  source: SourceType<T>,
 ): source is firestore.DocumentReference {
   return (source as firestore.DocumentReference).set !== undefined;
 }
 
 function isCollectionReference<T>(
-  source: SourceType<T>
+  source: SourceType<T>,
 ): source is firestore.CollectionReference {
   return (source as firestore.CollectionReference).doc !== undefined;
 }
 
 function getPathFromCollectionRef(
-  collectionRef?: firestore.CollectionReference
+  collectionRef?: firestore.CollectionReference,
 ) {
   return collectionRef ? `${collectionRef.path}/__no_document_id` : undefined;
 }
@@ -71,8 +71,13 @@ export class ObservableDocument<T> {
 
   public constructor(source?: SourceType<T>, options?: Options) {
     this._debug_id = shortid.generate();
-    this.dataObservable = observable.box(undefined, { deep: false, name: `${this._debug_id}_data` });
-    this.isLoadingObservable = observable.box(false, { name: `${this._debug_id}_isLoading` });
+    this.dataObservable = observable.box(undefined, {
+      deep: false,
+      name: `${this._debug_id}_data`,
+    });
+    this.isLoadingObservable = observable.box(false, {
+      name: `${this._debug_id}_isLoading`,
+    });
 
     if (options) {
       this.options = { ...optionDefaults, ...options };
@@ -81,7 +86,7 @@ export class ObservableDocument<T> {
 
     // Don't think we need to call this here. Every change to source creates a
     // new one via changeReady()
-    this.initializeReadyPromise()
+    this.initializeReadyPromise();
 
     if (!source) {
       // do nothing?
@@ -100,7 +105,7 @@ export class ObservableDocument<T> {
        */
       this.changeLoadingState(true);
     } else {
-      assert(source.ref, 'Missing ref in source')
+      assert(source.ref, "Missing ref in source");
       /**
        * Source is type Document<T>, typically passed in from the docs  data of
        * an ObservableCollection instance.
@@ -117,14 +122,14 @@ export class ObservableDocument<T> {
 
     onBecomeObserved(this, "dataObservable", () => this.resumeUpdates("data"));
     onBecomeUnobserved(this, "dataObservable", () =>
-      this.suspendUpdates("data")
+      this.suspendUpdates("data"),
     );
 
     onBecomeObserved(this, "isLoadingObservable", () =>
-      this.resumeUpdates("isLoading")
+      this.resumeUpdates("isLoading"),
     );
     onBecomeUnobserved(this, "isLoadingObservable", () =>
-      this.suspendUpdates("isLoading")
+      this.suspendUpdates("isLoading"),
     );
   }
 
@@ -137,12 +142,12 @@ export class ObservableDocument<T> {
   }
 
   public get data(): T | undefined {
-    return this.dataObservable.get()
+    return this.dataObservable.get();
   }
 
   @computed
   public get document(): Document<T> | undefined {
-    const data = this.dataObservable.get()
+    const data = this.dataObservable.get();
 
     if (!this._ref || !this._exists || !data) return;
 
@@ -154,7 +159,7 @@ export class ObservableDocument<T> {
     return {
       id: this._ref.id,
       data: toJS(data),
-      ref: this._ref
+      ref: this._ref,
     };
   }
 
@@ -208,13 +213,13 @@ export class ObservableDocument<T> {
        * no listeners are set up, we treat ready() as a one time fetch request,
        * so data is available after awaiting the promise.
        */
-      this.logDebug('Ready requested without listeners => fetch')
+      this.logDebug("Ready requested without listeners => fetch");
       this.fetchInitialData();
     } else {
-      this.logDebug('Ready requested with active listeners')
+      this.logDebug("Ready requested with active listeners");
     }
 
-    assert(this.readyPromise, 'Missing ready promise')
+    assert(this.readyPromise, "Missing ready promise");
 
     return this.readyPromise;
   }
@@ -224,28 +229,28 @@ export class ObservableDocument<T> {
   }
 
   private changeReady(isReady: boolean) {
-    this.logDebug(`Change ready ${isReady}`)
+    this.logDebug(`Change ready ${isReady}`);
 
     if (isReady) {
       const readyResolve = this.readyResolveFn;
-      assert(readyResolve, 'Missing ready resolve function')
+      assert(readyResolve, "Missing ready resolve function");
 
-      this.logDebug('Call ready resolve')
+      this.logDebug("Call ready resolve");
 
       readyResolve(this.data);
 
       /**
-        * After the first promise has been resolved we want subsequent calls to
-        * ready() to immediately return with the available data. Ready is only
-        * meant to be used for initial data fetching
-        */
-      this.readyPromise = Promise.resolve(this.data)
+       * After the first promise has been resolved we want subsequent calls to
+       * ready() to immediately return with the available data. Ready is only
+       * meant to be used for initial data fetching
+       */
+      this.readyPromise = Promise.resolve(this.data);
     }
   }
 
   private initializeReadyPromise() {
-    this.logDebug('Initialize new ready promise')
-    this.readyPromise = new Promise(resolve => {
+    this.logDebug("Initialize new ready promise");
+    this.readyPromise = new Promise((resolve) => {
       this.readyResolveFn = resolve;
     });
   }
@@ -265,8 +270,10 @@ export class ObservableDocument<T> {
      */
     this._ref
       .get()
-      .then(snapshot => this.handleSnapshot(snapshot))
-      .catch(err => console.error(`Fetch initial data failed: ${err.message}`));
+      .then((snapshot) => this.handleSnapshot(snapshot))
+      .catch((err) =>
+        console.error(`Fetch initial data failed: ${err.message}`),
+      );
     this.firedInitialFetch = true;
   }
 
@@ -279,7 +286,7 @@ export class ObservableDocument<T> {
       this.logDebug("Becoming observed");
       this.updateListeners(true);
     }
-  };
+  }
 
   private suspendUpdates(context: string) {
     this.observedCount -= 1;
@@ -290,7 +297,7 @@ export class ObservableDocument<T> {
       this.logDebug("Becoming un-observed");
       this.updateListeners(false);
     }
-  };
+  }
 
   private handleSnapshot(snapshot: firestore.DocumentSnapshot) {
     const exists = snapshot.exists;
@@ -300,11 +307,11 @@ export class ObservableDocument<T> {
 
       const data = exists
         ? (snapshot.data({
-          serverTimestamps: this.options.serverTimestamps
-        }) as T)
-        : undefined
+            serverTimestamps: this.options.serverTimestamps,
+          }) as T)
+        : undefined;
 
-      this.dataObservable.set(data)
+      this.dataObservable.set(data);
 
       this.changeLoadingState(false);
     });
@@ -330,7 +337,7 @@ export class ObservableDocument<T> {
 
     const hasSource = !!ref;
 
-    this.initializeReadyPromise()
+    this.initializeReadyPromise();
 
     // @TODO make DRY
     if (!hasSource) {
@@ -354,7 +361,7 @@ export class ObservableDocument<T> {
   private changeSourceViaId(documentId?: string) {
     if (!this._collectionRef) {
       throw new Error(
-        `Can not change source via id if there is no known collection reference`
+        `Can not change source via id if there is no known collection reference`,
       );
     }
 
@@ -374,7 +381,7 @@ export class ObservableDocument<T> {
 
     const hasSource = !!newRef;
 
-    this.initializeReadyPromise()
+    this.initializeReadyPromise();
 
     // @TODO make DRY
     if (!hasSource) {
@@ -400,8 +407,8 @@ export class ObservableDocument<T> {
       if (!this._ref) {
         console.log(
           `${this._debug_id} (${getPathFromCollectionRef(
-            this._collectionRef
-          )}) ${message}`
+            this._collectionRef,
+          )}) ${message}`,
         );
       } else {
         console.log(`${this._debug_id} (${this._ref.path}) ${message}`);
@@ -437,8 +444,8 @@ export class ObservableDocument<T> {
       this.logDebug("Subscribe listeners");
 
       this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
-        snapshot => this.handleSnapshot(snapshot),
-        err => this.onSnapshotError(err)
+        (snapshot) => this.handleSnapshot(snapshot),
+        (err) => this.onSnapshotError(err),
       );
 
       this.listenerSourcePath = this.sourcePath;
