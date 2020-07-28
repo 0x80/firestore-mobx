@@ -3,20 +3,36 @@ import {
   initializeDataset,
   clearDataset,
   collectionName,
-  collectionData
+  collectionData,
+  TestDocumentA
 } from "./helpers/dataset";
 import { db } from "./helpers/firebase";
-import { autorun } from "mobx";
+import { autorun, configure } from "mobx";
 
-describe("testing collection", () => {
-  beforeAll(() => initializeDataset());
-  afterAll(() => clearDataset());
+
+
+configure({
+  enforceActions: "never",
+});
+
+
+describe("Collection", () => {
+  beforeAll(async (done) => {
+    // await db.enableNetwork();
+    await initializeDataset()
+    done()
+  });
+  afterAll(async (done) => {
+    // await db.disableNetwork();
+    await clearDataset()
+    done()
+  });
 
   // beforeEach(() => initializeDataset());
   // afterEach(() => clearDataset());
 
-  test("Create a collection", async () => {
-    const collection = new ObservableCollection(db.collection(collectionName));
+  it("Should create a collection", async () => {
+    const collection = new ObservableCollection<TestDocumentA>(db.collection(collectionName));
 
     expect(collection.isLoading).toBe(true);
     expect(collection.hasDocs).toBe(false);
@@ -26,7 +42,12 @@ describe("testing collection", () => {
       console.log("isLoading", collection.isLoading);
     });
 
-    await collection.ready();
+    const docs = await collection.ready();
+    expect(docs.map(doc => doc.data)).toEqual(
+      expect.arrayContaining(collectionData)
+    );
+
+    expect(docs.length).toBe(collectionData.length);
 
     expect(collection.isLoading).toBe(false);
     expect(collection.hasDocs).toBe(true);
@@ -37,4 +58,7 @@ describe("testing collection", () => {
 
     disposeListeners();
   });
+
+
+
 });

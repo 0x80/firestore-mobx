@@ -1,6 +1,6 @@
 import { db } from "./firebase";
 
-export interface SomeDocument {
+export interface TestDocumentA {
   title: string;
   count: number;
   type: "even" | "odd";
@@ -8,7 +8,7 @@ export interface SomeDocument {
 
 export const collectionName = "someCollection";
 
-export const collectionData: SomeDocument[] = [
+export const collectionData: TestDocumentA[] = [
   {
     title: "Document 1",
     count: 1,

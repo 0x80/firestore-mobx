@@ -1,7 +1,7 @@
 // import { FirebaseFirestore } from "@firebase/firestore-types";
 import * as firebase from '@firebase/testing'
 
-export const app = firebase.initializeTestApp({projectId: 'firestore-mobx-test',  auth: { uid: "alice", email: "alice@example.com" }});
+export const app = firebase.initializeTestApp({ projectId: 'firestore-mobx-test', auth: { uid: "alice", email: "alice@example.com" } });
 
 export const db = app.firestore()
 

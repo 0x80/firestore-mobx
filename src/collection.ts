@@ -9,7 +9,7 @@ import {
 import { firestore } from "firebase";
 import { Document } from "./document";
 import shortid from "shortid";
-import { executeFromCount } from "./utils";
+import { executeFromCount, assert } from "./utils";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -34,23 +34,24 @@ function hasReference(
   return !!ref;
 }
 
-export class ObservableCollection<T extends object> {
-  @observable private docsObservable = observable.array([] as Document<T>[]);
-  @observable private isLoadingObservable = observable.box(false);
+export class ObservableCollection<T> {
+  private _debug_id = shortid.generate();
 
-  private _debug_id: string;
+  @observable private docsObservable = observable([] as Document<T>[], { name: `${this._debug_id}_docs` });
+  @observable private isLoadingObservable = observable.box(false, { name: `${this._debug_id}_isLoading` });
+
   private _ref?: firestore.CollectionReference;
   private _query?: firestore.Query;
   private queryCreatorFn?: QueryCreatorFn;
   private isDebugEnabled = false;
-  private readyPromise = Promise.resolve();
-  private readyResolveFn?: () => void;
+  private readyPromise?: Promise<Document<T>[]>;
+  private readyResolveFn?: (docs: Document<T>[]) => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
   private observedCount = 0;
   private firedInitialFetch = false;
-  private sourceId?: string;
-  private listenerSourceId?: string;
+  private sourcePath?: string;
+  private listenerSourcePath?: string;
 
   /**
    * @TODO maybe record a string of the query + reference, so we can figure out
@@ -67,8 +68,9 @@ export class ObservableCollection<T extends object> {
     queryCreatorFn?: QueryCreatorFn,
     options?: Options
   ) {
-    this._debug_id = shortid.generate();
     this.logDebug("Constructor");
+
+    this.initializeReadyPromise();
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
      * because then we could make a single source parameter
@@ -81,7 +83,7 @@ export class ObservableCollection<T extends object> {
     if (queryCreatorFn) {
       this.queryCreatorFn = queryCreatorFn;
       this._query = hasReference(ref) ? queryCreatorFn(ref) : undefined;
-      this.sourceId = shortid.generate();
+      this.sourcePath = shortid.generate();
     }
 
     if (options) {
@@ -112,28 +114,29 @@ export class ObservableCollection<T extends object> {
   }
 
   @computed
-  public get isEmpty() {
+  public get isEmpty(): boolean {
     return this.docsObservable.length === 0;
   }
 
   @computed
-  public get hasDocs() {
+  public get hasDocs(): boolean {
     return this.docsObservable.length > 0;
   }
 
-  public get isLoading() {
+  public get isLoading(): boolean {
     return this.isLoadingObservable.get();
   }
 
-  public get isObserved() {
+  @computed
+  public get isObserved(): boolean {
     return this.observedCount > 0;
   }
 
-  public get path() {
+  public get path(): string | undefined {
     return this._ref ? this._ref.path : undefined;
   }
 
-  public get ref() {
+  public get ref(): firestore.CollectionReference | undefined {
     return this._ref;
   }
 
@@ -156,11 +159,13 @@ export class ObservableCollection<T extends object> {
     this.firedInitialFetch = false;
     this._ref = newRef;
 
+    this.initializeReadyPromise();
+
     if (hasReference(newRef)) {
       if (this.queryCreatorFn) {
         this.logDebug("Update query using new ref source");
         this._query = this.queryCreatorFn(newRef);
-        this.sourceId = shortid.generate();
+        this.sourcePath = shortid.generate();
       }
 
       if (this.isObserved) {
@@ -180,14 +185,14 @@ export class ObservableCollection<T extends object> {
     }
   }
 
-  public async add(data: T) {
+  public async add(data: T): Promise<firestore.DocumentReference<firestore.DocumentData>> {
     if (!hasReference(this._ref)) {
       throw new Error(`Can not add a document to a collection that has no ref`);
     }
     return this._ref.add(data);
   }
 
-  public ready(): Promise<void> {
+  public ready(): Promise<Document<T>[]> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening) {
@@ -196,30 +201,40 @@ export class ObservableCollection<T extends object> {
        * no listeners are set up, we treat ready() as a one time fetch request,
        * so data is available after awaiting the promise.
        */
+      this.logDebug('Ready call without listeners => fetch')
       this.fetchInitialData();
     }
+
+    assert(this.readyPromise, 'Missing ready promise')
 
     return this.readyPromise;
   }
 
   private changeReady(isReady: boolean) {
+    this.logDebug(`Change ready ${isReady}`)
+
     if (isReady) {
       const readyResolve = this.readyResolveFn;
-      if (readyResolve) {
-        this.readyResolveFn = undefined;
-        readyResolve();
-      }
-    } else {
-      this.initReadyResolver();
+      assert(readyResolve, 'Missing ready resolve function')
+
+      this.logDebug('Call ready resolve')
+
+      readyResolve(this.docs);
+
+      /**
+        * After the first promise has been resolved we want subsequent calls to
+        * ready() to immediately return with the available data. Ready is only
+        * meant to be used for initial data fetching
+        */
+      this.readyPromise = Promise.resolve(this.docs)
     }
   }
 
-  private initReadyResolver() {
-    if (!this.readyResolveFn) {
-      this.readyPromise = new Promise(resolve => {
-        this.readyResolveFn = resolve;
-      });
-    }
+  private initializeReadyPromise() {
+    this.logDebug('Initialize new ready promise')
+    this.readyPromise = new Promise(resolve => {
+      this.readyResolveFn = resolve;
+    });
   }
 
   private fetchInitialData() {
@@ -258,7 +273,7 @@ export class ObservableCollection<T extends object> {
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates = (context: string) => {
+  private resumeUpdates(context: string) {
     this.observedCount += 1;
 
     this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
@@ -269,7 +284,7 @@ export class ObservableCollection<T extends object> {
     }
   };
 
-  private suspendUpdates = (context: string) => {
+  private suspendUpdates(context: string) {
     this.observedCount -= 1;
 
     this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);
@@ -351,7 +366,7 @@ export class ObservableCollection<T extends object> {
 
     const hasSource = !!this._ref || !!newQuery;
     this._query = newQuery;
-    this.sourceId = shortid.generate();
+    this.sourcePath = shortid.generate();
 
     if (!hasSource) {
       if (this.isObserved) {
@@ -387,7 +402,7 @@ export class ObservableCollection<T extends object> {
     if (
       shouldListen &&
       isListening &&
-      this.sourceId === this.listenerSourceId
+      this.sourcePath === this.listenerSourcePath
     ) {
       // this.logDebug("Ignore update listeners");
       return;
@@ -397,7 +412,7 @@ export class ObservableCollection<T extends object> {
       this.logDebug("Unsubscribe listeners");
       this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
       this.onSnapshotUnsubscribeFn = undefined;
-      this.listenerSourceId = undefined;
+      this.listenerSourcePath = undefined;
     }
 
     if (shouldListen) {
@@ -421,16 +436,16 @@ export class ObservableCollection<T extends object> {
         );
       }
 
-      this.listenerSourceId = this.sourceId;
+      this.listenerSourcePath = this.sourcePath;
     }
   }
 
   private changeLoadingState(isLoading: boolean) {
-    const wasLoading = this.isLoading;
-    if (wasLoading === isLoading) {
-      // this.logDebug(`Ignore change loading state: ${isLoading}`);
-      return;
-    }
+    // const wasLoading = this.isLoading;
+    // if (wasLoading === isLoading) {
+    //   // this.logDebug(`Ignore change loading state: ${isLoading}`);
+    //   return;
+    // }
 
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
