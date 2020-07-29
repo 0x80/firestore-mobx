@@ -70,6 +70,14 @@ export class ObservableDocument<T> {
   private listenerSourcePath?: string;
 
   onError?: (err: Error) => void;
+
+  /**
+   * The data is optional, because you could attach to a different document that
+   * does not exist and data would not be available. Alternatively we could
+   * decide to not fire this callback then, but that probably makes is more
+   * difficult for the client to avoid stale data when switching to an invalid
+   * document.
+   */
   onData?: (data?: T) => void;
 
   public constructor(source?: SourceType<T>, options?: Options) {

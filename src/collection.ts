@@ -58,7 +58,7 @@ export class ObservableCollection<T> {
   private listenerSourcePath?: string;
 
   onError?: (err: Error) => void;
-  onDocs?: (docs?: Document<T>[]) => void;
+  onDocs?: (docs: Document<T>[]) => void;
 
   /**
    * @TODO maybe record a string of the query + reference, so we can figure out
