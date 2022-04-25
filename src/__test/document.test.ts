@@ -1,32 +1,26 @@
+import { first } from "lodash";
+import { autorun, configure, toJS } from "mobx";
 import { ObservableDocument } from "../document";
 import {
-  initializeDataset,
   clearDataset,
-  collectionName,
   collectionData,
+  collectionName,
+  initializeDataset,
   TestDocumentA,
 } from "./helpers/dataset";
 import { db } from "./helpers/firebase";
-import { first } from "lodash";
-import { autorun, toJS, configure } from "mobx";
 
 configure({
   enforceActions: "never",
 });
 
-// import { consoleInspect } from "./helpers/console";
-
 describe("Document", () => {
   // Try to solve this https://github.com/facebook/jest/issues/7287
-  beforeAll(async (done) => {
-    // await db.enableNetwork();
-    await initializeDataset();
-    done();
+  beforeAll((done) => {
+    initializeDataset().then(done);
   });
-  afterAll(async (done) => {
-    // await db.disableNetwork();
-    await clearDataset();
-    done();
+  afterAll((done) => {
+    clearDataset().then(done);
   });
 
   it("Should initialize", () => {
@@ -44,6 +38,7 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
+    // @ts-expect-error
     const document = new ObservableDocument(first(snapshot.docs)?.ref);
 
     expect(document.isLoading).toBe(true);
@@ -69,6 +64,7 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
+    // @ts-expect-error
     const document = new ObservableDocument(db.collection(collectionName));
 
     document.attachTo(first(snapshot.docs)?.id);
@@ -97,6 +93,7 @@ describe("Document", () => {
       .get();
 
     const document = new ObservableDocument<TestDocumentA>(
+      // @ts-expect-error
       db.collection(collectionName),
       { debug: false },
     );
@@ -123,6 +120,7 @@ describe("Document", () => {
       .get();
 
     const document = new ObservableDocument<TestDocumentA>(
+      // @ts-expect-error
       db.collection(collectionName),
       { debug: false },
     );
@@ -159,6 +157,7 @@ describe("Document", () => {
 
   it("Passes undefined on ready when not found", async () => {
     const document = new ObservableDocument<TestDocumentA>(
+      // @ts-expect-error
       db.collection(collectionName),
     );
 
@@ -171,6 +170,7 @@ describe("Document", () => {
 
   it("Should have a fallback id", async () => {
     const document = new ObservableDocument<TestDocumentA>(
+      // @ts-expect-error
       db.collection(collectionName),
       { debug: false },
     );
@@ -198,8 +198,8 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
-    // document.attachTo(first(snapshot.docs)?.id)
     const document = new ObservableDocument<TestDocumentA>(
+      // @ts-expect-error
       db.collection(collectionName).doc(first(snapshot.docs)?.id),
       { debug: false },
     );

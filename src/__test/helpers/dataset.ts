@@ -6,7 +6,7 @@ export interface TestDocumentA {
   type: "even" | "odd";
 }
 
-export const collectionName = "someCollection";
+export const collectionName: string = "someCollection";
 
 export const collectionData: TestDocumentA[] = [
   {

@@ -6,3 +6,4 @@ build/
 .env.*
 .next
 .rpt2_cache
+credentials/

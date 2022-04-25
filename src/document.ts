@@ -1,13 +1,13 @@
+import firebase from "firebase/app";
 import {
-  observable,
-  runInAction,
+  computed,
   IObservableValue,
+  observable,
   onBecomeObserved,
   onBecomeUnobserved,
+  runInAction,
   toJS,
-  computed,
 } from "mobx";
-import { firestore } from "firebase";
 import shortid from "shortid";
 import { assert } from "./utils";
 
@@ -24,30 +24,30 @@ const optionDefaults: Options = {
 export interface Document<T> {
   id: string;
   data: T;
-  ref: firestore.DocumentReference;
+  ref: firebase.firestore.DocumentReference;
 }
 
 function isDocumentReference<T>(
   source: SourceType<T>,
-): source is firestore.DocumentReference {
-  return (source as firestore.DocumentReference).set !== undefined;
+): source is firebase.firestore.DocumentReference {
+  return (source as firebase.firestore.DocumentReference).set !== undefined;
 }
 
 function isCollectionReference<T>(
   source: SourceType<T>,
-): source is firestore.CollectionReference {
-  return (source as firestore.CollectionReference).doc !== undefined;
+): source is firebase.firestore.CollectionReference {
+  return (source as firebase.firestore.CollectionReference).doc !== undefined;
 }
 
 function getPathFromCollectionRef(
-  collectionRef?: firestore.CollectionReference,
+  collectionRef?: firebase.firestore.CollectionReference,
 ) {
   return collectionRef ? `${collectionRef.path}/__no_document_id` : undefined;
 }
 
 type SourceType<T> =
-  | firestore.DocumentReference
-  | firestore.CollectionReference
+  | firebase.firestore.DocumentReference
+  | firebase.firestore.CollectionReference
   | Document<T>;
 
 export class ObservableDocument<T> {
@@ -55,8 +55,8 @@ export class ObservableDocument<T> {
   @observable private isLoadingObservable: IObservableValue<boolean>;
 
   private _debug_id: string;
-  private _ref?: firestore.DocumentReference;
-  private _collectionRef?: firestore.CollectionReference;
+  private _ref?: firebase.firestore.DocumentReference;
+  private _collectionRef?: firebase.firestore.CollectionReference;
   private isDebugEnabled = false;
 
   private _exists = false;
@@ -101,11 +101,11 @@ export class ObservableDocument<T> {
 
     if (!source) {
       // do nothing?
-    } else if (isCollectionReference<T>(source)) {
+    } else if (isCollectionReference(source)) {
       this._collectionRef = source;
       this.sourcePath = source.path;
       this.logDebug("Constructor from collection reference");
-    } else if (isDocumentReference<T>(source)) {
+    } else if (isDocumentReference(source)) {
       this._ref = source;
       this._collectionRef = source.parent;
       this.sourcePath = source.path;
@@ -182,11 +182,11 @@ export class ObservableDocument<T> {
     return this.observedCount > 0;
   }
 
-  public get ref(): firestore.DocumentReference | undefined {
+  public get ref(): firebase.firestore.DocumentReference | undefined {
     return this._ref;
   }
 
-  public set ref(ref: firestore.DocumentReference | undefined) {
+  public set ref(ref: firebase.firestore.DocumentReference | undefined) {
     runInAction(() => this.changeSourceViaRef(ref));
   }
 
@@ -194,14 +194,17 @@ export class ObservableDocument<T> {
     return this._ref ? this._ref.path : undefined;
   }
 
-  public update(fields: firestore.UpdateData): Promise<void> {
+  public update(fields: firebase.firestore.UpdateData): Promise<void> {
     if (!this._ref) {
       throw Error("Can not update data on document with undefined ref");
     }
     return this._ref.update(fields);
   }
 
-  public set(data: Partial<T>, options?: firestore.SetOptions): Promise<void> {
+  public set(
+    data: Partial<T>,
+    options?: firebase.firestore.SetOptions,
+  ): Promise<void> {
     if (!this._ref) {
       throw Error("Can not set data on document with undefined ref");
     }
@@ -310,7 +313,7 @@ export class ObservableDocument<T> {
     }
   }
 
-  private handleSnapshot(snapshot: firestore.DocumentSnapshot) {
+  private handleSnapshot(snapshot: firebase.firestore.DocumentSnapshot) {
     const exists = snapshot.exists;
 
     runInAction(() => {
@@ -340,7 +343,7 @@ export class ObservableDocument<T> {
     }
   }
 
-  private changeSourceViaRef(ref?: firestore.DocumentReference) {
+  private changeSourceViaRef(ref?: firebase.firestore.DocumentReference) {
     const newPath = ref ? ref.path : undefined;
     // const oldPath = this._ref ? this._ref.path : undefined;
 

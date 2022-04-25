@@ -1,4 +1,3 @@
-// import { FirebaseFirestore } from "@firebase/firestore-types";
 import * as firebase from "@firebase/testing";
 
 const app = firebase.initializeTestApp({

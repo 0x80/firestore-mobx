@@ -1,15 +1,15 @@
+import firebase from "firebase/app";
 import {
-  observable,
   computed,
-  runInAction,
+  IObservableArray,
+  observable,
   onBecomeObserved,
   onBecomeUnobserved,
-  IObservableArray,
+  runInAction,
 } from "mobx";
-import { firestore } from "firebase";
-import { Document } from "./document";
 import shortid from "shortid";
-import { executeFromCount, assert } from "./utils";
+import { Document } from "./document";
+import { assert, executeFromCount } from "./utils";
 
 interface Options {
   serverTimestamps?: "estimate" | "previous" | "none";
@@ -26,11 +26,13 @@ const optionDefaults: Options = {
   debug: false,
 };
 
-type QueryCreatorFn = (ref: firestore.CollectionReference) => firestore.Query;
+type QueryCreatorFn = (
+  ref: firebase.firestore.CollectionReference,
+) => firebase.firestore.Query;
 
 function hasReference(
-  ref?: firestore.CollectionReference,
-): ref is firestore.CollectionReference {
+  ref?: firebase.firestore.CollectionReference,
+): ref is firebase.firestore.CollectionReference {
   return !!ref;
 }
 
@@ -44,8 +46,8 @@ export class ObservableCollection<T> {
     name: `${this._debug_id}_isLoading`,
   });
 
-  private _ref?: firestore.CollectionReference;
-  private _query?: firestore.Query;
+  private _ref?: firebase.firestore.CollectionReference;
+  private _query?: firebase.firestore.Query;
   private queryCreatorFn?: QueryCreatorFn;
   private isDebugEnabled = false;
   private readyPromise?: Promise<Document<T>[]>;
@@ -71,7 +73,7 @@ export class ObservableCollection<T> {
      * Ref is optional because for sub-collections you do not know the full path
      * in advance. Pass undefined if you want to supply the other parameters
      */
-    ref?: firestore.CollectionReference,
+    ref?: firebase.firestore.CollectionReference,
     queryCreatorFn?: QueryCreatorFn,
     options?: Options,
   ) {
@@ -81,7 +83,7 @@ export class ObservableCollection<T> {
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
      * because then we could make a single source parameter
-     * firestore.CollectionReference | firestore.Query
+     * firebase.firestore.CollectionReference | firebase.firestore.Query
      */
     if (hasReference(ref)) {
       this._ref = ref;
@@ -143,15 +145,15 @@ export class ObservableCollection<T> {
     return this._ref ? this._ref.path : undefined;
   }
 
-  public get ref(): firestore.CollectionReference | undefined {
+  public get ref(): firebase.firestore.CollectionReference | undefined {
     return this._ref;
   }
 
-  public set ref(newRef: firestore.CollectionReference | undefined) {
+  public set ref(newRef: firebase.firestore.CollectionReference | undefined) {
     this.changeSource(newRef);
   }
 
-  private changeSource(newRef?: firestore.CollectionReference) {
+  private changeSource(newRef?: firebase.firestore.CollectionReference) {
     if (!this._ref && !newRef) {
       // this.logDebug("Ignore change source");
       return;
@@ -194,7 +196,9 @@ export class ObservableCollection<T> {
 
   public async add(
     data: T,
-  ): Promise<firestore.DocumentReference<firestore.DocumentData>> {
+  ): Promise<
+    firebase.firestore.DocumentReference<firebase.firestore.DocumentData>
+  > {
     if (!hasReference(this._ref)) {
       this.handleError(
         new Error(`Can not add a document to a collection that has no ref`),
@@ -324,7 +328,7 @@ export class ObservableCollection<T> {
     }
   }
 
-  private handleSnapshot(snapshot: firestore.QuerySnapshot) {
+  private handleSnapshot(snapshot: firebase.firestore.QuerySnapshot) {
     this.logDebug(
       `handleSnapshot, ${Date.now()} docs.length: ${snapshot.docs.length}`,
     );

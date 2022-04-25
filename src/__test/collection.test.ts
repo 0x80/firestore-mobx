@@ -1,41 +1,35 @@
+import { autorun, configure } from "mobx";
 import { ObservableCollection } from "../collection";
 import {
-  initializeDataset,
   clearDataset,
-  collectionName,
   collectionData,
+  collectionName,
+  initializeDataset,
   TestDocumentA,
 } from "./helpers/dataset";
 import { db } from "./helpers/firebase";
-import { autorun, configure } from "mobx";
 
 configure({
   enforceActions: "never",
 });
 
 describe("Collection", () => {
-  beforeAll(async (done) => {
-    // await db.enableNetwork();
-    await initializeDataset();
-    done();
+  beforeAll((done) => {
+    initializeDataset().then(done);
   });
-  afterAll(async (done) => {
-    // await db.disableNetwork();
-    await clearDataset();
-    done();
+  afterAll((done) => {
+    clearDataset().then(done);
   });
-
-  // beforeEach(() => initializeDataset());
-  // afterEach(() => clearDataset());
 
   it("Should create a collection", async () => {
     const collection = new ObservableCollection<TestDocumentA>(
+      // @ts-expect-error
       db.collection(collectionName),
     );
 
     expect(collection.isLoading).toBe(true);
     expect(collection.hasDocs).toBe(false);
-    expect(collection.docs.toJS()).toEqual([]);
+    expect(collection.docs).toEqual([]);
 
     const disposeListeners = autorun(() => {
       console.log("isLoading", collection.isLoading);
