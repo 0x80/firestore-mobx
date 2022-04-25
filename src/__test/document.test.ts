@@ -1,6 +1,7 @@
 import { first } from "lodash";
 import { autorun, configure, toJS } from "mobx";
 import { ObservableDocument } from "../document";
+import { db } from "./firestore-client";
 import {
   clearDataset,
   collectionData,
@@ -8,7 +9,6 @@ import {
   initializeDataset,
   TestDocumentA,
 } from "./helpers/dataset";
-import { db } from "./helpers/firebase";
 
 configure({
   enforceActions: "never",

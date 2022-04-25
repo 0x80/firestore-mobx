@@ -1,5 +1,6 @@
 import { autorun, configure } from "mobx";
 import { ObservableCollection } from "../collection";
+import { db } from "./firestore-client";
 import {
   clearDataset,
   collectionData,
@@ -7,7 +8,6 @@ import {
   initializeDataset,
   TestDocumentA,
 } from "./helpers/dataset";
-import { db } from "./helpers/firebase";
 
 configure({
   enforceActions: "never",
