@@ -1,32 +1,38 @@
+import { autorun, configure, toJS } from "mobx";
 import { ObservableDocument } from "../document";
+import { first } from "../utils";
 import {
-  initializeDataset,
   clearDataset,
-  collectionName,
   collectionData,
+  collectionName,
+  db,
+  initializeDataset,
   TestDocumentA,
-} from "./helpers/dataset";
-import { db } from "./helpers/firebase";
-import { first } from "lodash";
-import { autorun, toJS, configure } from "mobx";
+} from "./helpers";
 
 configure({
-  enforceActions: "never",
+  enforceActions: "always",
 });
 
-// import { consoleInspect } from "./helpers/console";
-
 describe("Document", () => {
+  /**
+   * Check if transpiler is set up correctly. See
+   * https://mobx.js.org/installation.html
+   */
+  if (
+    !new (class {
+      x: any;
+    })().hasOwnProperty("x")
+  ) {
+    throw new Error("Transpiler is not configured correctly");
+  }
+
   // Try to solve this https://github.com/facebook/jest/issues/7287
-  beforeAll(async (done) => {
-    // await db.enableNetwork();
-    await initializeDataset();
-    done();
+  beforeAll((done) => {
+    initializeDataset().then(done);
   });
-  afterAll(async (done) => {
-    // await db.disableNetwork();
-    await clearDataset();
-    done();
+  afterAll((done) => {
+    clearDataset().then(done);
   });
 
   it("Should initialize", () => {
@@ -50,17 +56,11 @@ describe("Document", () => {
     expect(document.hasData).toBe(false);
     expect(document.data).toBeUndefined();
 
-    const disposeListeners = autorun(() => {
-      console.log("isLoading", document.isLoading);
-    });
-
     await document.ready();
 
     expect(document.isLoading).toBe(false);
     expect(document.hasData).toBe(true);
     expect(document.data).toEqual(first(collectionData));
-
-    disposeListeners();
   });
 
   it("Can observe a document by id", async () => {
@@ -198,7 +198,6 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
-    // document.attachTo(first(snapshot.docs)?.id)
     const document = new ObservableDocument<TestDocumentA>(
       db.collection(collectionName).doc(first(snapshot.docs)?.id),
       { debug: false },
