@@ -8,8 +8,7 @@ import {
   runInAction,
 } from "mobx";
 import { Document } from "./document";
-import { createUniqueId, createUniqueId } from "./helpers";
-import { assert, executeFromCount } from "./utils";
+import { assert, createUniqueId } from "./utils";
 
 interface Options {
   /**
@@ -456,4 +455,20 @@ export class ObservableCollection<T> {
     this.changeReady(!isLoading);
     runInAction(() => (this.isLoading = isLoading));
   }
+}
+
+type Fn<T> = (...args: T[]) => void;
+
+export function executeFromCount<T>(fn: Fn<T>, count: number) {
+  let executionCount = 0;
+
+  return (...args: T[]) => {
+    if (executionCount < count) {
+      executionCount++;
+      return false;
+    } else {
+      fn(...args);
+      return true;
+    }
+  };
 }

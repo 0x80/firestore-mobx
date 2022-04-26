@@ -1,13 +1,13 @@
 import { autorun, configure } from "mobx";
 import { ObservableCollection } from "../collection";
-import { db } from "./firestore-client";
 import {
   clearDataset,
   collectionData,
   collectionName,
+  db,
   initializeDataset,
   TestDocumentA,
-} from "./helpers/dataset";
+} from "./helpers";
 
 configure({
   enforceActions: "always",

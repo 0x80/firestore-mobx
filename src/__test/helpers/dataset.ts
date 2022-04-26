@@ -1,4 +1,4 @@
-import { db } from "../firestore-client";
+import { db } from "./firestore-client";
 
 export interface TestDocumentA {
   title: string;

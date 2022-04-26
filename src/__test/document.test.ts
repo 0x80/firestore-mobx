@@ -1,14 +1,14 @@
 import { autorun, configure, toJS } from "mobx";
 import { ObservableDocument } from "../document";
-import { first } from "../helpers";
-import { db } from "./firestore-client";
+import { first } from "../utils";
 import {
   clearDataset,
   collectionData,
   collectionName,
+  db,
   initializeDataset,
   TestDocumentA,
-} from "./helpers/dataset";
+} from "./helpers";
 
 configure({
   enforceActions: "always",

@@ -8,8 +8,7 @@ import {
   runInAction,
   toJS,
 } from "mobx";
-import { createUniqueId } from "./helpers";
-import { assert } from "./utils";
+import { assert, createUniqueId } from "./utils";
 
 interface Options {
   debug?: boolean;
