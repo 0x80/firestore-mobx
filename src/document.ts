@@ -50,7 +50,7 @@ export class ObservableDocument<T> {
   _data: T | typeof NO_DATA = NO_DATA;
   isLoading = false;
 
-  private debugId: string;
+  private debugId = shortid.generate();
   private documentRef?: FirebaseFirestore.DocumentReference;
   private collectionRef?: FirebaseFirestore.CollectionReference;
   private isDebugEnabled = false;
@@ -67,8 +67,6 @@ export class ObservableDocument<T> {
   onError?: (err: Error) => void;
 
   public constructor(source?: SourceType<T>, options?: Options) {
-    this.debugId = shortid.generate();
-
     makeObservable(this, {
       _data: observable,
       isLoading: observable,
@@ -121,13 +119,11 @@ export class ObservableDocument<T> {
       });
     }
 
-    onBecomeObserved(this, "_data", () => this.resumeUpdates("data"));
-    onBecomeUnobserved(this, "_data", () => this.suspendUpdates("data"));
+    onBecomeObserved(this, "_data", () => this.resumeUpdates());
+    onBecomeUnobserved(this, "_data", () => this.suspendUpdates());
 
-    onBecomeObserved(this, "isLoading", () => this.resumeUpdates("isLoading"));
-    onBecomeUnobserved(this, "isLoading", () =>
-      this.suspendUpdates("isLoading"),
-    );
+    onBecomeObserved(this, "isLoading", () => this.resumeUpdates());
+    onBecomeUnobserved(this, "isLoading", () => this.suspendUpdates());
   }
 
   public get id(): string {
@@ -278,10 +274,10 @@ export class ObservableDocument<T> {
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates(context: string) {
+  private resumeUpdates() {
     this.observedCount += 1;
 
-    this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
+    this.logDebug(`Resume. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 1) {
       this.logDebug("Becoming observed");
@@ -289,10 +285,10 @@ export class ObservableDocument<T> {
     }
   }
 
-  private suspendUpdates(context: string) {
+  private suspendUpdates() {
     this.observedCount -= 1;
 
-    this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);
+    this.logDebug(`Suspend. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 0) {
       this.logDebug("Becoming un-observed");
@@ -460,6 +456,6 @@ export class ObservableDocument<T> {
   private changeLoadingState(isLoading: boolean) {
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
-    this.isLoading = isLoading;
+    runInAction(() => (this.isLoading = isLoading));
   }
 }

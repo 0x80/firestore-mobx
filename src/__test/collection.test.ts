@@ -10,7 +10,7 @@ import {
 } from "./helpers/dataset";
 
 configure({
-  enforceActions: "never",
+  enforceActions: "always",
 });
 
 describe("Collection", () => {
@@ -23,7 +23,6 @@ describe("Collection", () => {
 
   it("Should create a collection", async () => {
     const collection = new ObservableCollection<TestDocumentA>(
-      // @ts-expect-error
       db.collection(collectionName),
     );
 

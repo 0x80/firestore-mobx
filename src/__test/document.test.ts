@@ -11,7 +11,7 @@ import {
 } from "./helpers/dataset";
 
 configure({
-  enforceActions: "never",
+  enforceActions: "always",
 });
 
 describe("Document", () => {

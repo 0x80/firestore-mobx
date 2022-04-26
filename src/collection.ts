@@ -1,7 +1,7 @@
-import firebase from "firebase/app";
 import {
+  action,
   computed,
-  IObservableArray,
+  makeObservable,
   observable,
   onBecomeObserved,
   onBecomeUnobserved,
@@ -12,42 +12,37 @@ import { Document } from "./document";
 import { assert, executeFromCount } from "./utils";
 
 interface Options {
-  serverTimestamps?: "estimate" | "previous" | "none";
   /**
-   * For more info read https://firebase.google.com/docs/firestore/query-data/listen
+   * For more info read
+   * https://firebase.google.com/docs/firestore/query-data/listen
    */
   ignoreInitialSnapshot?: boolean;
   debug?: boolean;
 }
 
 const optionDefaults: Options = {
-  serverTimestamps: "estimate",
   ignoreInitialSnapshot: false, // @TODO test before making default true
   debug: false,
 };
 
 type QueryCreatorFn = (
-  ref: firebase.firestore.CollectionReference,
-) => firebase.firestore.Query;
+  ref: FirebaseFirestore.CollectionReference,
+) => FirebaseFirestore.Query;
 
 function hasReference(
-  ref?: firebase.firestore.CollectionReference,
-): ref is firebase.firestore.CollectionReference {
+  ref?: FirebaseFirestore.CollectionReference,
+): ref is FirebaseFirestore.CollectionReference {
   return !!ref;
 }
 
 export class ObservableCollection<T> {
-  private _debug_id = shortid.generate();
+  private debugId = shortid.generate();
 
-  @observable private docsObservable = observable([] as Document<T>[], {
-    name: `${this._debug_id}_docs`,
-  });
-  @observable private isLoadingObservable = observable.box(false, {
-    name: `${this._debug_id}_isLoading`,
-  });
+  docs: Document<T>[] = [];
+  isLoading = false;
 
-  private _ref?: firebase.firestore.CollectionReference;
-  private _query?: firebase.firestore.Query;
+  private collectionRef?: FirebaseFirestore.CollectionReference;
+  private _query?: FirebaseFirestore.Query;
   private queryCreatorFn?: QueryCreatorFn;
   private isDebugEnabled = false;
   private readyPromise?: Promise<Document<T>[]>;
@@ -60,33 +55,38 @@ export class ObservableCollection<T> {
   private listenerSourcePath?: string;
 
   onError?: (err: Error) => void;
-  onDocs?: (docs: Document<T>[]) => void;
 
   /**
    * @TODO maybe record a string of the query + reference, so we can figure out
    * if the current listeners belong to that combination or we need to update
    * them
    */
-
   public constructor(
     /**
-     * Ref is optional because for sub-collections you do not know the full path
-     * in advance. Pass undefined if you want to supply the other parameters
+     * Ref is optional because for sub-collections you might not know the full
+     * path in advance. Pass undefined if you want to supply the other
+     * parameters
      */
-    ref?: firebase.firestore.CollectionReference,
+    ref?: FirebaseFirestore.CollectionReference,
     queryCreatorFn?: QueryCreatorFn,
     options?: Options,
   ) {
-    this.logDebug("Constructor");
+    makeObservable(this, {
+      docs: observable,
+      isLoading: observable,
+      isEmpty: computed,
+      hasDocs: computed,
+      attachTo: action,
+    });
 
     this.initializeReadyPromise();
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
      * because then we could make a single source parameter
-     * firebase.firestore.CollectionReference | firebase.firestore.Query
+     * FirebaseFirestore.CollectionReference | FirebaseFirestore.Query
      */
     if (hasReference(ref)) {
-      this._ref = ref;
+      this.collectionRef = ref;
     }
 
     if (queryCreatorFn) {
@@ -100,73 +100,55 @@ export class ObservableCollection<T> {
       this.isDebugEnabled = options.debug || false;
     }
 
-    onBecomeObserved(this, "docsObservable", () => this.resumeUpdates("docs"));
-    onBecomeUnobserved(this, "docsObservable", () =>
-      this.suspendUpdates("docs"),
-    );
+    onBecomeObserved(this, "docs", () => this.resumeUpdates());
+    onBecomeUnobserved(this, "docs", () => this.suspendUpdates());
 
-    onBecomeObserved(this, "isLoadingObservable", () =>
-      this.resumeUpdates("isLoading"),
-    );
-
-    onBecomeUnobserved(this, "isLoadingObservable", () =>
-      this.suspendUpdates("isLoading"),
-    );
+    onBecomeObserved(this, "isLoading", () => this.resumeUpdates());
+    onBecomeUnobserved(this, "isLoading", () => this.suspendUpdates());
 
     if (hasReference(ref)) {
       this.changeLoadingState(true);
     }
   }
 
-  public get docs(): IObservableArray<Document<T>> {
-    return this.docsObservable;
-  }
-
-  @computed
   public get isEmpty(): boolean {
-    return this.docsObservable.length === 0;
+    return this.docs.length === 0;
   }
 
-  @computed
   public get hasDocs(): boolean {
-    return this.docsObservable.length > 0;
+    return this.docs.length > 0;
   }
 
-  public get isLoading(): boolean {
-    return this.isLoadingObservable.get();
-  }
-
-  @computed
-  public get isObserved(): boolean {
+  private get isObserved(): boolean {
     return this.observedCount > 0;
   }
 
   public get path(): string | undefined {
-    return this._ref ? this._ref.path : undefined;
+    return this.collectionRef ? this.collectionRef.path : undefined;
   }
 
-  public get ref(): firebase.firestore.CollectionReference | undefined {
-    return this._ref;
+  public get ref(): FirebaseFirestore.CollectionReference | undefined {
+    return this.collectionRef;
   }
 
-  public set ref(newRef: firebase.firestore.CollectionReference | undefined) {
+  public attachTo(newRef: FirebaseFirestore.CollectionReference | undefined) {
     this.changeSource(newRef);
   }
 
-  private changeSource(newRef?: firebase.firestore.CollectionReference) {
-    if (!this._ref && !newRef) {
+  private changeSource(newRef?: FirebaseFirestore.CollectionReference) {
+    if (!this.collectionRef && !newRef) {
       // this.logDebug("Ignore change source");
       return;
     }
 
-    if (this._ref && newRef && this._ref.isEqual(newRef)) {
+    if (this.collectionRef && newRef && this.collectionRef.isEqual(newRef)) {
       // this.logDebug("Ignore change source");
       return;
     }
 
     this.logDebug(`Change source to ${newRef ? newRef.path : undefined}`);
     this.firedInitialFetch = false;
-    this._ref = newRef;
+    this.collectionRef = newRef;
 
     this.initializeReadyPromise();
 
@@ -189,17 +171,13 @@ export class ObservableCollection<T> {
         this.updateListeners(false);
       }
 
-      this.docsObservable.replace([]);
+      this.docs = [];
       this.changeLoadingState(false);
     }
   }
 
-  public async add(
-    data: T,
-  ): Promise<
-    firebase.firestore.DocumentReference<firebase.firestore.DocumentData>
-  > {
-    if (!hasReference(this._ref)) {
+  public async add(data: T) {
+    if (!hasReference(this.collectionRef)) {
       this.handleError(
         new Error(`Can not add a document to a collection that has no ref`),
       );
@@ -207,10 +185,11 @@ export class ObservableCollection<T> {
         `Can not add a document to a collection that has no ref`,
       );
     }
-    return this._ref.add(data);
+
+    return this.collectionRef.add(data);
   }
 
-  public ready(): Promise<Document<T>[]> {
+  public ready() {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening) {
@@ -261,7 +240,7 @@ export class ObservableCollection<T> {
       return;
     }
 
-    if (!this._ref) {
+    if (!this.collectionRef) {
       this.handleError(
         new Error("Can not fetch data without a collection reference"),
       );
@@ -285,7 +264,7 @@ export class ObservableCollection<T> {
           ),
         );
     } else {
-      this._ref
+      this.collectionRef
         .get()
         .then((snapshot) => this.handleSnapshot(snapshot))
         .catch((err) =>
@@ -298,10 +277,10 @@ export class ObservableCollection<T> {
     this.firedInitialFetch = true;
   }
 
-  private resumeUpdates(context: string) {
+  private resumeUpdates() {
     this.observedCount += 1;
 
-    this.logDebug(`Resume ${context}. Observed count: ${this.observedCount}`);
+    this.logDebug(`Resume. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 1) {
       this.logDebug("Becoming observed");
@@ -309,10 +288,10 @@ export class ObservableCollection<T> {
     }
   }
 
-  private suspendUpdates(context: string) {
+  private suspendUpdates() {
     this.observedCount -= 1;
 
-    this.logDebug(`Suspend ${context}. Observed count: ${this.observedCount}`);
+    this.logDebug(`Suspend. Observed count: ${this.observedCount}`);
 
     if (this.observedCount === 0) {
       this.logDebug("Becoming un-observed");
@@ -328,41 +307,37 @@ export class ObservableCollection<T> {
     }
   }
 
-  private handleSnapshot(snapshot: firebase.firestore.QuerySnapshot) {
+  private handleSnapshot(snapshot: FirebaseFirestore.QuerySnapshot) {
     this.logDebug(
       `handleSnapshot, ${Date.now()} docs.length: ${snapshot.docs.length}`,
     );
 
     /**
-     * @TODO keep local cache of each document and only update data based on
-     * the docChanges
+     * @TODO keep local cache of each document and only update data based on the
+     * docChanges
      */
-    // snapshot.docChanges().forEach(function(change) {
-    //   if (change.type === "added") {
-    //     console.log("New: ", change.doc.data());
+    // snapshot.docChanges().forEach(function(change) { if (change.type ===
+    //   "added") { console.log("New: ", change.doc.data());
     //   }
-    //   if (change.type === "modified") {
-    //     console.log("Modified: ", change.doc.data());
+    //   if (change.type === "modified") { console.log("Modified: ",
+    //     change.doc.data());
     //   }
-    //   if (change.type === "removed") {
-    //     console.log("Removed: ", change.doc.data());
+    //   if (change.type === "removed") { console.log("Removed: ",
+    //     change.doc.data());
     //   }
     // });
 
     runInAction(() => {
-      const docs: Document<T>[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ref: doc.ref,
-        data: doc.data({
-          serverTimestamps: this.options.serverTimestamps,
-        }) as T,
-      }));
+      const docs = snapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ref: doc.ref,
+            data: doc.data() as T,
+          } as Document<T>),
+      );
 
-      this.docsObservable.replace(docs);
-
-      if (typeof this.onDocs === "function") {
-        this.onDocs(docs);
-      }
+      this.docs = docs;
 
       this.changeLoadingState(false);
     });
@@ -374,8 +349,8 @@ export class ObservableCollection<T> {
     this.queryCreatorFn = queryCreatorFn;
 
     const newQuery = queryCreatorFn
-      ? hasReference(this._ref)
-        ? queryCreatorFn(this._ref)
+      ? hasReference(this.collectionRef)
+        ? queryCreatorFn(this.collectionRef)
         : undefined
       : undefined;
 
@@ -397,7 +372,7 @@ export class ObservableCollection<T> {
 
     this.firedInitialFetch = false;
 
-    const hasSource = !!this._ref || !!newQuery;
+    const hasSource = !!this.collectionRef || !!newQuery;
     this._query = newQuery;
     this.sourcePath = shortid.generate();
 
@@ -407,7 +382,7 @@ export class ObservableCollection<T> {
         this.updateListeners(false);
       }
 
-      this.docsObservable.replace([]);
+      this.docs = [];
       this.changeLoadingState(false);
     } else {
       if (this.isObserved) {
@@ -421,10 +396,10 @@ export class ObservableCollection<T> {
 
   private logDebug(message: string) {
     if (this.isDebugEnabled) {
-      if (this._ref) {
-        console.log(`${this._debug_id} (${this._ref.path}) ${message} `);
+      if (this.collectionRef) {
+        console.log(`${this.debugId} (${this.collectionRef.path}) ${message} `);
       } else {
-        console.log(`${this._debug_id} ${message}`);
+        console.log(`${this.debugId} ${message}`);
       }
     }
   }
@@ -459,8 +434,8 @@ export class ObservableCollection<T> {
           ),
           (err) => this.handleError(err),
         );
-      } else if (this._ref) {
-        this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
+      } else if (this.collectionRef) {
+        this.onSnapshotUnsubscribeFn = this.collectionRef.onSnapshot(
           executeFromCount(
             (snapshot) => this.handleSnapshot(snapshot),
             this.options.ignoreInitialSnapshot ? 1 : 0,
@@ -474,14 +449,12 @@ export class ObservableCollection<T> {
   }
 
   private changeLoadingState(isLoading: boolean) {
-    // const wasLoading = this.isLoading;
-    // if (wasLoading === isLoading) {
-    //   // this.logDebug(`Ignore change loading state: ${isLoading}`);
-    //   return;
+    // const wasLoading = this.isLoading; if (wasLoading === isLoading) { //
+    // this.logDebug(`Ignore change loading state: ${isLoading}`); return;
     // }
 
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
-    this.isLoadingObservable.set(isLoading);
+    runInAction(() => (this.isLoading = isLoading));
   }
 }
