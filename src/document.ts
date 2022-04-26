@@ -1,7 +1,7 @@
-import firebase from "firebase/app";
 import {
+  action,
   computed,
-  IObservableValue,
+  makeObservable,
   observable,
   onBecomeObserved,
   onBecomeUnobserved,
@@ -12,58 +12,53 @@ import shortid from "shortid";
 import { assert } from "./utils";
 
 interface Options {
-  serverTimestamps?: "estimate" | "previous" | "none";
   debug?: boolean;
 }
-
-const optionDefaults: Options = {
-  serverTimestamps: "estimate",
-  debug: false,
-};
 
 export interface Document<T> {
   id: string;
   data: T;
-  ref: firebase.firestore.DocumentReference;
+  ref: FirebaseFirestore.DocumentReference;
 }
 
 function isDocumentReference<T>(
   source: SourceType<T>,
-): source is firebase.firestore.DocumentReference {
-  return (source as firebase.firestore.DocumentReference).set !== undefined;
+): source is FirebaseFirestore.DocumentReference {
+  return (source as FirebaseFirestore.DocumentReference).set !== undefined;
 }
 
 function isCollectionReference<T>(
   source: SourceType<T>,
-): source is firebase.firestore.CollectionReference {
-  return (source as firebase.firestore.CollectionReference).doc !== undefined;
+): source is FirebaseFirestore.CollectionReference {
+  return (source as FirebaseFirestore.CollectionReference).doc !== undefined;
 }
 
 function getPathFromCollectionRef(
-  collectionRef?: firebase.firestore.CollectionReference,
+  collectionRef?: FirebaseFirestore.CollectionReference,
 ) {
   return collectionRef ? `${collectionRef.path}/__no_document_id` : undefined;
 }
 
+const NO_DATA = "__no_data" as const;
+
 type SourceType<T> =
-  | firebase.firestore.DocumentReference
-  | firebase.firestore.CollectionReference
+  | FirebaseFirestore.DocumentReference
+  | FirebaseFirestore.CollectionReference
   | Document<T>;
 
 export class ObservableDocument<T> {
-  @observable private dataObservable: IObservableValue<T | undefined>;
-  @observable private isLoadingObservable: IObservableValue<boolean>;
+  _data: T | typeof NO_DATA = NO_DATA;
+  isLoading = false;
 
-  private _debug_id: string;
-  private _ref?: firebase.firestore.DocumentReference;
-  private _collectionRef?: firebase.firestore.CollectionReference;
+  private debugId: string;
+  private documentRef?: FirebaseFirestore.DocumentReference;
+  private collectionRef?: FirebaseFirestore.CollectionReference;
   private isDebugEnabled = false;
 
   private _exists = false;
   private readyPromise?: Promise<T | undefined>;
   private readyResolveFn?: (data?: T) => void;
   private onSnapshotUnsubscribeFn?: () => void;
-  private options: Options = optionDefaults;
   private observedCount = 0;
   private firedInitialFetch = false;
   private sourcePath?: string;
@@ -71,27 +66,19 @@ export class ObservableDocument<T> {
 
   onError?: (err: Error) => void;
 
-  /**
-   * The data is optional, because you could attach to a different document that
-   * does not exist and data would not be available. Alternatively we could
-   * decide to not fire this callback then, but that probably makes is more
-   * difficult for the client to avoid stale data when switching to an invalid
-   * document.
-   */
-  onData?: (data?: T) => void;
-
   public constructor(source?: SourceType<T>, options?: Options) {
-    this._debug_id = shortid.generate();
-    this.dataObservable = observable.box(undefined, {
-      deep: false,
-      name: `${this._debug_id}_data`,
-    });
-    this.isLoadingObservable = observable.box(false, {
-      name: `${this._debug_id}_isLoading`,
+    this.debugId = shortid.generate();
+
+    makeObservable(this, {
+      _data: observable,
+      isLoading: observable,
+      data: computed,
+      document: computed,
+      attachTo: action,
+      hasData: computed,
     });
 
     if (options) {
-      this.options = { ...optionDefaults, ...options };
       this.isDebugEnabled = options.debug || false;
     }
 
@@ -102,12 +89,12 @@ export class ObservableDocument<T> {
     if (!source) {
       // do nothing?
     } else if (isCollectionReference(source)) {
-      this._collectionRef = source;
+      this.collectionRef = source;
       this.sourcePath = source.path;
       this.logDebug("Constructor from collection reference");
     } else if (isDocumentReference(source)) {
-      this._ref = source;
-      this._collectionRef = source.parent;
+      this.documentRef = source;
+      this.collectionRef = source.parent;
       this.sourcePath = source.path;
       this.logDebug("Constructor from document reference");
       /**
@@ -121,46 +108,50 @@ export class ObservableDocument<T> {
        * Source is type Document<T>, typically passed in from the docs  data of
        * an ObservableCollection instance.
        */
-      this._ref = source.ref;
+      this.documentRef = source.ref;
       // not sure why ref can be undefined here. Maybe a bug in gemini
-      this._collectionRef = source.ref?.parent;
+      this.collectionRef = source.ref?.parent;
       this.sourcePath = source.ref?.path;
       this.logDebug("Constructor from Document<T>");
 
       this._exists = true;
-      this.dataObservable.set(source.data);
+
+      action(() => {
+        this._data = source.data;
+      });
     }
 
-    onBecomeObserved(this, "dataObservable", () => this.resumeUpdates("data"));
-    onBecomeUnobserved(this, "dataObservable", () =>
-      this.suspendUpdates("data"),
-    );
+    onBecomeObserved(this, "_data", () => this.resumeUpdates("data"));
+    onBecomeUnobserved(this, "_data", () => this.suspendUpdates("data"));
 
-    onBecomeObserved(this, "isLoadingObservable", () =>
-      this.resumeUpdates("isLoading"),
-    );
-    onBecomeUnobserved(this, "isLoadingObservable", () =>
+    onBecomeObserved(this, "isLoading", () => this.resumeUpdates("isLoading"));
+    onBecomeUnobserved(this, "isLoading", () =>
       this.suspendUpdates("isLoading"),
     );
   }
 
   public get id(): string {
-    return this._ref ? this._ref.id : "__no_id";
+    return this.documentRef ? this.documentRef.id : "__no_id";
   }
 
-  public attachTo(documentId?: string): void {
-    runInAction(() => this.changeSourceViaId(documentId));
+  public attachTo(
+    documentIdOrRef?: string | FirebaseFirestore.DocumentReference,
+  ): void {
+    if (!documentIdOrRef || typeof documentIdOrRef === "string") {
+      this.changeSourceViaId(documentIdOrRef);
+    } else {
+      this.changeSourceViaRef(documentIdOrRef);
+    }
   }
 
   public get data(): T | undefined {
-    return this.dataObservable.get();
+    if (!this.documentRef || !this._exists || this._data === NO_DATA) return;
+
+    return toJS(this._data);
   }
 
-  @computed
   public get document(): Document<T> | undefined {
-    const data = this.dataObservable.get();
-
-    if (!this._ref || !this._exists || !data) return;
+    if (!this.documentRef || !this._exists || this._data === NO_DATA) return;
 
     /**
      * For document we return the data as non-observable by converting it to a
@@ -168,60 +159,56 @@ export class ObservableDocument<T> {
      * observable data you can use the data property directly.
      */
     return {
-      id: this._ref.id,
-      data: toJS(data),
-      ref: this._ref,
+      id: this.documentRef.id,
+      data: toJS(this._data),
+      ref: this.documentRef,
     };
   }
 
-  public get isLoading(): boolean {
-    return this.isLoadingObservable.get();
-  }
-
-  public get isObserved(): boolean {
+  private get isObserved(): boolean {
     return this.observedCount > 0;
   }
 
-  public get ref(): firebase.firestore.DocumentReference | undefined {
-    return this._ref;
+  public get ref(): FirebaseFirestore.DocumentReference | undefined {
+    return this.documentRef;
   }
 
-  public set ref(ref: firebase.firestore.DocumentReference | undefined) {
-    runInAction(() => this.changeSourceViaRef(ref));
+  public set ref(newRef: FirebaseFirestore.DocumentReference | undefined) {
+    this.changeSourceViaRef(newRef);
   }
 
   public get path(): string | undefined {
-    return this._ref ? this._ref.path : undefined;
+    return this.documentRef ? this.documentRef.path : undefined;
   }
 
-  public update(fields: firebase.firestore.UpdateData): Promise<void> {
-    if (!this._ref) {
+  public async update(
+    fields: FirebaseFirestore.UpdateData,
+    precondition?: FirebaseFirestore.Precondition,
+  ) {
+    if (!this.documentRef) {
       throw Error("Can not update data on document with undefined ref");
     }
-    return this._ref.update(fields);
+    return this.documentRef.update(fields, precondition);
   }
 
-  public set(
-    data: Partial<T>,
-    options?: firebase.firestore.SetOptions,
-  ): Promise<void> {
-    if (!this._ref) {
+  public async set(data: Partial<T>, options?: FirebaseFirestore.SetOptions) {
+    if (!this.documentRef) {
       throw Error("Can not set data on document with undefined ref");
     }
-    return this._ref.set(data, options || {});
+    return this.documentRef.set(data, options || {});
   }
 
-  public delete(): Promise<void> {
-    if (!this._ref) {
+  public delete() {
+    if (!this.documentRef) {
       throw Error("Can not delete document with undefined ref");
     }
-    return this._ref.delete();
+    return this.documentRef.delete();
   }
 
   public ready(): Promise<T | undefined> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
-    if (!isListening && this._ref) {
+    if (!isListening && this.documentRef) {
       /**
        * If the client is calling ready() but document is not being observed /
        * no listeners are set up, we treat ready() as a one time fetch request,
@@ -239,7 +226,7 @@ export class ObservableDocument<T> {
   }
 
   public get hasData(): boolean {
-    return this._exists;
+    return this._data !== NO_DATA;
   }
 
   private changeReady(isReady: boolean) {
@@ -270,7 +257,7 @@ export class ObservableDocument<T> {
   }
 
   private fetchInitialData() {
-    if (this.firedInitialFetch || !this._ref) {
+    if (this.firedInitialFetch || !this.documentRef) {
       this.logDebug("Ignore fetch initial data");
       return;
     }
@@ -282,7 +269,7 @@ export class ObservableDocument<T> {
      * will resolve the ready promise just like the snapshot passed in from the
      * normal listener.
      */
-    this._ref
+    this.documentRef
       .get()
       .then((snapshot) => this.handleSnapshot(snapshot))
       .catch((err) =>
@@ -313,28 +300,21 @@ export class ObservableDocument<T> {
     }
   }
 
-  private handleSnapshot(snapshot: firebase.firestore.DocumentSnapshot) {
+  private handleSnapshot(snapshot: FirebaseFirestore.DocumentSnapshot) {
     const exists = snapshot.exists;
 
     runInAction(() => {
       this._exists = exists;
 
-      const data = exists
-        ? (snapshot.data({
-            serverTimestamps: this.options.serverTimestamps,
-          }) as T)
-        : undefined;
-
-      this.dataObservable.set(data);
-
-      if (typeof this.onData === "function") {
-        this.onData(data);
-      }
+      this._data = exists ? (snapshot.data() as T) : NO_DATA;
 
       this.changeLoadingState(false);
     });
   }
 
+  /**
+   * If there is an error handler callback we use that, otherwise we throw.
+   */
   private handleError(err: Error) {
     if (typeof this.onError === "function") {
       this.onError(err);
@@ -343,17 +323,17 @@ export class ObservableDocument<T> {
     }
   }
 
-  private changeSourceViaRef(ref?: firebase.firestore.DocumentReference) {
+  private changeSourceViaRef(ref?: FirebaseFirestore.DocumentReference) {
     const newPath = ref ? ref.path : undefined;
     // const oldPath = this._ref ? this._ref.path : undefined;
 
-    if (this._ref && ref && this._ref.isEqual(ref)) {
+    if (this.documentRef && ref && this.documentRef.isEqual(ref)) {
       // this.logDebug("Ignore change source");
       return;
     }
 
     this.logDebug(`Change source via ref to ${ref ? ref.path : undefined}`);
-    this._ref = ref;
+    this.documentRef = ref;
     this.sourcePath = newPath;
     this.firedInitialFetch = false;
 
@@ -368,7 +348,7 @@ export class ObservableDocument<T> {
         this.updateListeners(false);
       }
 
-      this.dataObservable.set(undefined);
+      this._data = NO_DATA;
       this.changeLoadingState(false);
     } else {
       if (this.isObserved) {
@@ -381,7 +361,7 @@ export class ObservableDocument<T> {
   }
 
   private changeSourceViaId(documentId?: string) {
-    if (!this._collectionRef) {
+    if (!this.collectionRef) {
       this.handleError(
         new Error(
           `Can not change source via id if there is no known collection reference`,
@@ -394,13 +374,13 @@ export class ObservableDocument<T> {
       return;
     }
 
-    const newRef = documentId ? this._collectionRef.doc(documentId) : undefined;
+    const newRef = documentId ? this.collectionRef.doc(documentId) : undefined;
     const newPath = newRef
       ? newRef.path
-      : getPathFromCollectionRef(this._collectionRef);
+      : getPathFromCollectionRef(this.collectionRef);
 
     this.logDebug(`Change source via id to ${newPath}`);
-    this._ref = newRef;
+    this.documentRef = newRef;
     this.sourcePath = newPath;
     this.firedInitialFetch = false;
 
@@ -415,7 +395,7 @@ export class ObservableDocument<T> {
         this.updateListeners(false);
       }
 
-      this.dataObservable.set(undefined);
+      this._data = NO_DATA;
       this.changeLoadingState(false);
     } else {
       if (this.isObserved) {
@@ -429,14 +409,14 @@ export class ObservableDocument<T> {
 
   private logDebug(message: string) {
     if (this.isDebugEnabled) {
-      if (!this._ref) {
+      if (!this.documentRef) {
         console.log(
-          `${this._debug_id} (${getPathFromCollectionRef(
-            this._collectionRef,
+          `${this.debugId} (${getPathFromCollectionRef(
+            this.collectionRef,
           )}) ${message}`,
         );
       } else {
-        console.log(`${this._debug_id} (${this._ref.path}) ${message}`);
+        console.log(`${this.debugId} (${this.documentRef.path}) ${message}`);
       }
     }
   }
@@ -462,13 +442,13 @@ export class ObservableDocument<T> {
     }
 
     if (shouldListen) {
-      if (!this._ref) {
+      if (!this.documentRef) {
         return;
       }
 
       this.logDebug("Subscribe listeners");
 
-      this.onSnapshotUnsubscribeFn = this._ref.onSnapshot(
+      this.onSnapshotUnsubscribeFn = this.documentRef.onSnapshot(
         (snapshot) => this.handleSnapshot(snapshot),
         (err) => this.handleError(err),
       );
@@ -480,6 +460,6 @@ export class ObservableDocument<T> {
   private changeLoadingState(isLoading: boolean) {
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
-    this.isLoadingObservable.set(isLoading);
+    this.isLoading = isLoading;
   }
 }

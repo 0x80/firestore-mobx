@@ -15,6 +15,18 @@ configure({
 });
 
 describe("Document", () => {
+  /**
+   * Check if transpiler is set up correctly. See
+   * https://mobx.js.org/installation.html
+   */
+  if (
+    !new (class {
+      x: any;
+    })().hasOwnProperty("x")
+  ) {
+    throw new Error("Transpiler is not configured correctly");
+  }
+
   // Try to solve this https://github.com/facebook/jest/issues/7287
   beforeAll((done) => {
     initializeDataset().then(done);
@@ -38,24 +50,17 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
-    // @ts-expect-error
     const document = new ObservableDocument(first(snapshot.docs)?.ref);
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
     expect(document.data).toBeUndefined();
 
-    const disposeListeners = autorun(() => {
-      console.log("isLoading", document.isLoading);
-    });
-
     await document.ready();
 
     expect(document.isLoading).toBe(false);
     expect(document.hasData).toBe(true);
     expect(document.data).toEqual(first(collectionData));
-
-    disposeListeners();
   });
 
   it("Can observe a document by id", async () => {
@@ -64,7 +69,6 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
-    // @ts-expect-error
     const document = new ObservableDocument(db.collection(collectionName));
 
     document.attachTo(first(snapshot.docs)?.id);
@@ -93,7 +97,6 @@ describe("Document", () => {
       .get();
 
     const document = new ObservableDocument<TestDocumentA>(
-      // @ts-expect-error
       db.collection(collectionName),
       { debug: false },
     );
@@ -120,7 +123,6 @@ describe("Document", () => {
       .get();
 
     const document = new ObservableDocument<TestDocumentA>(
-      // @ts-expect-error
       db.collection(collectionName),
       { debug: false },
     );
@@ -157,7 +159,6 @@ describe("Document", () => {
 
   it("Passes undefined on ready when not found", async () => {
     const document = new ObservableDocument<TestDocumentA>(
-      // @ts-expect-error
       db.collection(collectionName),
     );
 
@@ -170,7 +171,6 @@ describe("Document", () => {
 
   it("Should have a fallback id", async () => {
     const document = new ObservableDocument<TestDocumentA>(
-      // @ts-expect-error
       db.collection(collectionName),
       { debug: false },
     );
@@ -199,7 +199,6 @@ describe("Document", () => {
       .get();
 
     const document = new ObservableDocument<TestDocumentA>(
-      // @ts-expect-error
       db.collection(collectionName).doc(first(snapshot.docs)?.id),
       { debug: false },
     );
