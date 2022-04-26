@@ -1,6 +1,6 @@
-import { first } from "lodash";
 import { autorun, configure, toJS } from "mobx";
 import { ObservableDocument } from "../document";
+import { first } from "../helpers";
 import { db } from "./firestore-client";
 import {
   clearDataset,

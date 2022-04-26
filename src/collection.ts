@@ -7,8 +7,8 @@ import {
   onBecomeUnobserved,
   runInAction,
 } from "mobx";
-import shortid from "shortid";
 import { Document } from "./document";
+import { createUniqueId, createUniqueId } from "./helpers";
 import { assert, executeFromCount } from "./utils";
 
 interface Options {
@@ -36,11 +36,10 @@ function hasReference(
 }
 
 export class ObservableCollection<T> {
-  private debugId = shortid.generate();
-
   docs: Document<T>[] = [];
   isLoading = false;
 
+  private debugId = createUniqueId();
   private collectionRef?: FirebaseFirestore.CollectionReference;
   private _query?: FirebaseFirestore.Query;
   private queryCreatorFn?: QueryCreatorFn;
@@ -51,7 +50,7 @@ export class ObservableCollection<T> {
   private options: Options = optionDefaults;
   private observedCount = 0;
   private firedInitialFetch = false;
-  private sourcePath?: string;
+  private sourceId = createUniqueId();
   private listenerSourcePath?: string;
 
   onError?: (err: Error) => void;
@@ -92,7 +91,7 @@ export class ObservableCollection<T> {
     if (queryCreatorFn) {
       this.queryCreatorFn = queryCreatorFn;
       this._query = hasReference(ref) ? queryCreatorFn(ref) : undefined;
-      this.sourcePath = shortid.generate();
+      this.sourceId = createUniqueId();
     }
 
     if (options) {
@@ -156,7 +155,7 @@ export class ObservableCollection<T> {
       if (this.queryCreatorFn) {
         this.logDebug("Update query using new ref source");
         this._query = this.queryCreatorFn(newRef);
-        this.sourcePath = shortid.generate();
+        this.sourceId = createUniqueId();
       }
 
       if (this.isObserved) {
@@ -374,7 +373,7 @@ export class ObservableCollection<T> {
 
     const hasSource = !!this.collectionRef || !!newQuery;
     this._query = newQuery;
-    this.sourcePath = shortid.generate();
+    this.sourceId = createUniqueId();
 
     if (!hasSource) {
       if (this.isObserved) {
@@ -410,7 +409,7 @@ export class ObservableCollection<T> {
     if (
       shouldListen &&
       isListening &&
-      this.sourcePath === this.listenerSourcePath
+      this.sourceId === this.listenerSourcePath
     ) {
       // this.logDebug("Ignore update listeners");
       return;
@@ -444,7 +443,7 @@ export class ObservableCollection<T> {
         );
       }
 
-      this.listenerSourcePath = this.sourcePath;
+      this.listenerSourcePath = this.sourceId;
     }
   }
 

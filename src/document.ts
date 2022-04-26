@@ -8,7 +8,7 @@ import {
   runInAction,
   toJS,
 } from "mobx";
-import shortid from "shortid";
+import { createUniqueId } from "./helpers";
 import { assert } from "./utils";
 
 interface Options {
@@ -50,12 +50,11 @@ export class ObservableDocument<T> {
   _data: T | typeof NO_DATA = NO_DATA;
   isLoading = false;
 
-  private debugId = shortid.generate();
+  private debugId = createUniqueId();
   private documentRef?: FirebaseFirestore.DocumentReference;
   private collectionRef?: FirebaseFirestore.CollectionReference;
   private isDebugEnabled = false;
 
-  private _exists = false;
   private readyPromise?: Promise<T | undefined>;
   private readyResolveFn?: (data?: T) => void;
   private onSnapshotUnsubscribeFn?: () => void;
@@ -112,8 +111,6 @@ export class ObservableDocument<T> {
       this.sourcePath = source.ref?.path;
       this.logDebug("Constructor from Document<T>");
 
-      this._exists = true;
-
       action(() => {
         this._data = source.data;
       });
@@ -141,13 +138,13 @@ export class ObservableDocument<T> {
   }
 
   public get data(): T | undefined {
-    if (!this.documentRef || !this._exists || this._data === NO_DATA) return;
+    if (!this.documentRef || this._data === NO_DATA) return;
 
     return toJS(this._data);
   }
 
   public get document(): Document<T> | undefined {
-    if (!this.documentRef || !this._exists || this._data === NO_DATA) return;
+    if (!this.documentRef || this._data === NO_DATA) return;
 
     /**
      * For document we return the data as non-observable by converting it to a
@@ -297,12 +294,8 @@ export class ObservableDocument<T> {
   }
 
   private handleSnapshot(snapshot: FirebaseFirestore.DocumentSnapshot) {
-    const exists = snapshot.exists;
-
     runInAction(() => {
-      this._exists = exists;
-
-      this._data = exists ? (snapshot.data() as T) : NO_DATA;
+      this._data = snapshot.exists ? (snapshot.data() as T) : NO_DATA;
 
       this.changeLoadingState(false);
     });
