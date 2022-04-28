@@ -50,4 +50,16 @@ describe("Collection", () => {
 
     disposeListeners();
   });
+
+  it("Can wait for ready after attaching", async () => {
+    const collection = new ObservableCollection<TestDocumentA>();
+
+    const docs = await collection
+      .attachTo(db.collection(collectionName))
+      .ready();
+
+    expect(docs.map((doc) => doc.data)).toEqual(
+      expect.arrayContaining(collectionData),
+    );
+  });
 });

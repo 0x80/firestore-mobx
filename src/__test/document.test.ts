@@ -71,7 +71,10 @@ describe("Document", () => {
 
     const document = new ObservableDocument(db.collection(collectionName));
 
-    document.attachTo(first(snapshot.docs)?.id);
+    document
+      .attachTo(first(snapshot.docs)?.id)
+      .ready()
+      .then((doc) => console.log("attachTo.ready", doc));
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
