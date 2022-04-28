@@ -56,7 +56,7 @@ describe("Document", () => {
     expect(document.hasData).toBe(false);
     expect(document.data).toBeUndefined();
 
-    await document.ready();
+    await document.ready().then((doc) => console.log(doc));
 
     expect(document.isLoading).toBe(false);
     expect(document.hasData).toBe(true);

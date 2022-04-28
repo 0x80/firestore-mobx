@@ -10,7 +10,6 @@
     "outDir": "dist",
     "rootDir": "src",
     "sourceMap": true,
-    "experimentalDecorators": true,
     "useDefineForClassFields": true
   },
   "include": ["src"]

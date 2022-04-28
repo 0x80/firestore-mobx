@@ -131,6 +131,10 @@ export class ObservableCollection<T> {
 
   public attachTo(newRef: FirebaseFirestore.CollectionReference | undefined) {
     this.changeSource(newRef);
+    /**
+     * Return this so we can chain ready()
+     */
+    return this;
   }
 
   private changeSource(newRef?: FirebaseFirestore.CollectionReference) {

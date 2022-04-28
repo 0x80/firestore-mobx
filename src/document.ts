@@ -128,12 +128,17 @@ export class ObservableDocument<T> {
 
   public attachTo(
     documentIdOrRef?: string | FirebaseFirestore.DocumentReference,
-  ): void {
+  ) {
     if (!documentIdOrRef || typeof documentIdOrRef === "string") {
       this.changeSourceViaId(documentIdOrRef);
     } else {
       this.changeSourceViaRef(documentIdOrRef);
     }
+
+    /**
+     * Return this so we can chain ready()
+     */
+    return this;
   }
 
   public get data(): T | undefined {
