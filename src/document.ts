@@ -354,7 +354,11 @@ export class ObservableDocument<T> {
   }
 
   private changeSourceViaId(documentId?: string) {
-    if (!this.collectionRef) {
+    if (this.id === documentId) {
+      return;
+    }
+
+    if (documentId && !this.collectionRef) {
       this.handleError(
         new Error(
           `Can not change source via id if there is no known collection reference`,
@@ -363,11 +367,11 @@ export class ObservableDocument<T> {
       return;
     }
 
-    if (this.id === documentId) {
-      return;
-    }
+    const newRef =
+      documentId && this.collectionRef
+        ? this.collectionRef.doc(documentId)
+        : undefined;
 
-    const newRef = documentId ? this.collectionRef.doc(documentId) : undefined;
     const newPath = newRef
       ? newRef.path
       : getPathFromCollectionRef(this.collectionRef);
