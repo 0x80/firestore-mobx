@@ -1,7 +1,6 @@
 import {
   action,
   computed,
-  makeAutoObservable,
   makeObservable,
   observable,
   onBecomeObserved,
@@ -20,14 +19,14 @@ export interface Document<T> {
   ref: FirebaseFirestore.DocumentReference;
 }
 
-function isDocumentReference<T>(
-  source: SourceType<T>,
+function isDocumentReference(
+  source: SourceType,
 ): source is FirebaseFirestore.DocumentReference {
   return (source as FirebaseFirestore.DocumentReference).set !== undefined;
 }
 
-function isCollectionReference<T>(
-  source: SourceType<T>,
+function isCollectionReference(
+  source: SourceType,
 ): source is FirebaseFirestore.CollectionReference {
   return (source as FirebaseFirestore.CollectionReference).doc !== undefined;
 }
@@ -40,10 +39,9 @@ function getPathFromCollectionRef(
 
 const NO_DATA = "__no_data" as const;
 
-type SourceType<T> =
+type SourceType =
   | FirebaseFirestore.DocumentReference
-  | FirebaseFirestore.CollectionReference
-  | Document<T>;
+  | FirebaseFirestore.CollectionReference;
 
 export class ObservableDocument<T> {
   _data: T | typeof NO_DATA = NO_DATA;
@@ -64,7 +62,7 @@ export class ObservableDocument<T> {
 
   onError?: (err: Error) => void;
 
-  constructor(source?: SourceType<T>, options?: Options) {
+  constructor(source?: SourceType, options?: Options) {
     makeObservable(this, {
       _data: observable,
       isLoading: observable,
@@ -98,19 +96,6 @@ export class ObservableDocument<T> {
        * promise and resolve function.
        */
       this.changeLoadingState(true);
-    } else {
-      assert(source.ref, "Missing ref in source");
-      /**
-       * Source is type Document<T>, typically passed in from the docs  data of
-       * an ObservableCollection instance.
-       */
-      this.documentRef = source.ref;
-      // not sure why ref can be undefined here. Maybe a bug in gemini
-      this.collectionRef = source.ref?.parent;
-      this.sourcePath = source.ref?.path;
-      this.logDebug("Constructor from Document<T>");
-
-      this._data = source.data;
     }
 
     onBecomeObserved(this, "_data", () => this.resumeUpdates());
