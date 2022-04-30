@@ -75,7 +75,11 @@ export class ObservableCollection<T> {
       isEmpty: computed,
       hasDocuments: computed,
       attachTo: action,
-      changeSource: action,
+      /**
+       * attachTo being an action doesn't seem to be sufficient to prevent
+       * strict mode errors on mutating documents[]
+       */
+      _changeSource: action,
     });
 
     this.initializeReadyPromise();
@@ -131,14 +135,14 @@ export class ObservableCollection<T> {
   }
 
   attachTo(newRef: FirebaseFirestore.CollectionReference | undefined) {
-    this.changeSource(newRef);
+    this._changeSource(newRef);
     /**
      * Return this so we can chain ready()
      */
     return this;
   }
 
-  private changeSource(newRef?: FirebaseFirestore.CollectionReference) {
+  _changeSource(newRef?: FirebaseFirestore.CollectionReference) {
     if (!this.collectionRef && !newRef) {
       // this.logDebug("Ignore change source");
       return;
