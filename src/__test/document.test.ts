@@ -1,4 +1,4 @@
-import { autorun, configure, toJS } from "mobx";
+import { autorun, configure } from "mobx";
 import { ObservableDocument } from "../document";
 import { first } from "../utils";
 import {
@@ -116,7 +116,7 @@ describe("Document", () => {
     const data = await document.ready();
 
     // consoleInspect('data', data)
-    expect(toJS(data)).toEqual(first(collectionData));
+    expect(data).toEqual(first(collectionData));
   });
 
   it("Should return data on ready with listeners", async () => {
@@ -148,14 +148,14 @@ describe("Document", () => {
     document
       .ready()
       .then((data) => {
-        expect(toJS(data)).toEqual(first(collectionData));
+        expect(data).toEqual(first(collectionData));
       })
       .catch((err) => console.error(err));
 
     const data = await document.ready();
 
     // consoleInspect('data', doc?.data)
-    expect(toJS(data)).toEqual(first(collectionData));
+    expect(data).toEqual(first(collectionData));
 
     disposeListeners();
   });
@@ -209,6 +209,6 @@ describe("Document", () => {
     const dataA = await document.ready();
     const dataB = await document.ready();
 
-    expect(toJS(dataA)).toStrictEqual(toJS(dataB));
+    expect(dataA).toStrictEqual(dataB);
   });
 });
