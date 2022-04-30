@@ -1,8 +1,5 @@
 import {
-  action,
-  computed,
-  makeObservable,
-  observable,
+  makeAutoObservable,
   onBecomeObserved,
   onBecomeUnobserved,
   runInAction,
@@ -45,7 +42,7 @@ type SourceType<T> =
   | Document<T>;
 
 export class ObservableDocument<T> {
-  _data: T | typeof NO_DATA = NO_DATA;
+  private _data: T | typeof NO_DATA = NO_DATA;
   isLoading = false;
 
   private debugId = createUniqueId();
@@ -64,14 +61,15 @@ export class ObservableDocument<T> {
   onError?: (err: Error) => void;
 
   public constructor(source?: SourceType<T>, options?: Options) {
-    makeObservable(this, {
-      _data: observable,
-      isLoading: observable,
-      data: computed,
-      document: computed,
-      attachTo: action,
-      hasData: computed,
-    });
+    // makeObservable(this, {
+    //   _data: observable,
+    //   isLoading: observable,
+    //   data: computed,
+    //   document: computed,
+    //   attachTo: action,
+    //   hasData: computed,
+    // })
+    makeAutoObservable(this);
 
     if (options) {
       this.isDebugEnabled = options.debug || false;
@@ -109,9 +107,7 @@ export class ObservableDocument<T> {
       this.sourcePath = source.ref?.path;
       this.logDebug("Constructor from Document<T>");
 
-      action(() => {
-        this._data = source.data;
-      });
+      this._data = source.data;
     }
 
     onBecomeObserved(this, "_data", () => this.resumeUpdates());
@@ -456,6 +452,6 @@ export class ObservableDocument<T> {
   private changeLoadingState(isLoading: boolean) {
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
-    runInAction(() => (this.isLoading = isLoading));
+    this.isLoading = isLoading;
   }
 }
