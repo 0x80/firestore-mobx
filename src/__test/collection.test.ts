@@ -27,8 +27,8 @@ describe("Collection", () => {
     );
 
     expect(collection.isLoading).toBe(true);
-    expect(collection.hasDocs).toBe(false);
-    expect(collection.docs).toEqual([]);
+    expect(collection.hasDocuments).toBe(false);
+    expect(collection.documents).toEqual([]);
 
     const disposeListeners = autorun(() => {
       console.log("isLoading", collection.isLoading);
@@ -42,9 +42,9 @@ describe("Collection", () => {
     expect(docs.length).toBe(collectionData.length);
 
     expect(collection.isLoading).toBe(false);
-    expect(collection.hasDocs).toBe(true);
-    expect(collection.docs.length).toBe(collectionData.length);
-    expect(collection.docs.map((doc) => doc.data)).toEqual(
+    expect(collection.hasDocuments).toBe(true);
+    expect(collection.documents.length).toBe(collectionData.length);
+    expect(collection.documents.map((doc) => doc.data)).toEqual(
       expect.arrayContaining(collectionData),
     );
 

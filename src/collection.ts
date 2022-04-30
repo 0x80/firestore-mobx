@@ -35,7 +35,7 @@ function hasReference(
 }
 
 export class ObservableCollection<T> {
-  docs: Document<T>[] = [];
+  documents: Document<T>[] = [];
   isLoading = false;
 
   private debugId = createUniqueId();
@@ -70,10 +70,10 @@ export class ObservableCollection<T> {
     options?: Options,
   ) {
     makeObservable(this, {
-      docs: observable,
+      documents: observable,
       isLoading: observable,
       isEmpty: computed,
-      hasDocs: computed,
+      hasDocuments: computed,
       attachTo: action,
     });
 
@@ -98,8 +98,8 @@ export class ObservableCollection<T> {
       this.isDebugEnabled = options.debug || false;
     }
 
-    onBecomeObserved(this, "docs", () => this.resumeUpdates());
-    onBecomeUnobserved(this, "docs", () => this.suspendUpdates());
+    onBecomeObserved(this, "documents", () => this.resumeUpdates());
+    onBecomeUnobserved(this, "documents", () => this.suspendUpdates());
 
     onBecomeObserved(this, "isLoading", () => this.resumeUpdates());
     onBecomeUnobserved(this, "isLoading", () => this.suspendUpdates());
@@ -110,11 +110,11 @@ export class ObservableCollection<T> {
   }
 
   public get isEmpty(): boolean {
-    return this.docs.length === 0;
+    return this.documents.length === 0;
   }
 
-  public get hasDocs(): boolean {
-    return this.docs.length > 0;
+  public get hasDocuments(): boolean {
+    return this.documents.length > 0;
   }
 
   private get isObserved(): boolean {
@@ -173,7 +173,7 @@ export class ObservableCollection<T> {
         this.updateListeners(false);
       }
 
-      this.docs = [];
+      this.documents = [];
       this.changeLoadingState(false);
     }
   }
@@ -218,14 +218,14 @@ export class ObservableCollection<T> {
 
       this.logDebug("Call ready resolve");
 
-      readyResolve(this.docs);
+      readyResolve(this.documents);
 
       /**
        * After the first promise has been resolved we want subsequent calls to
        * ready() to immediately return with the available data. Ready is only
        * meant to be used for initial data fetching
        */
-      this.readyPromise = Promise.resolve(this.docs);
+      this.readyPromise = Promise.resolve(this.documents);
     }
   }
 
@@ -330,7 +330,7 @@ export class ObservableCollection<T> {
     // });
 
     runInAction(() => {
-      const docs = snapshot.docs.map(
+      this.documents = snapshot.docs.map(
         (doc) =>
           ({
             id: doc.id,
@@ -338,9 +338,6 @@ export class ObservableCollection<T> {
             data: doc.data() as T,
           } as Document<T>),
       );
-
-      this.docs = docs;
-
       this.changeLoadingState(false);
     });
   }
@@ -384,7 +381,7 @@ export class ObservableCollection<T> {
         this.updateListeners(false);
       }
 
-      this.docs = [];
+      this.documents = [];
       this.changeLoadingState(false);
     } else {
       if (this.isObserved) {
