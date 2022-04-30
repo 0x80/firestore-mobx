@@ -71,6 +71,7 @@ export class ObservableDocument<T> {
       document: computed,
       attachTo: action,
       hasData: computed,
+      _changeLoadingState: action,
     });
 
     if (options) {
@@ -96,7 +97,7 @@ export class ObservableDocument<T> {
        * In this case we have data to wait on from the start. So initialize the
        * promise and resolve function.
        */
-      this.changeLoadingState(true);
+      this._changeLoadingState(true);
     }
 
     onBecomeObserved(this, "_data", () => this.resumeUpdates());
@@ -283,7 +284,7 @@ export class ObservableDocument<T> {
     runInAction(() => {
       this._data = snapshot.exists ? (snapshot.data() as T) : NO_DATA;
 
-      this.changeLoadingState(false);
+      this._changeLoadingState(false);
     });
   }
 
@@ -324,14 +325,14 @@ export class ObservableDocument<T> {
       }
 
       this._data = NO_DATA;
-      this.changeLoadingState(false);
+      this._changeLoadingState(false);
     } else {
       if (this.isObserved) {
         this.logDebug("Change document -> update listeners");
         this.updateListeners(true);
       }
 
-      this.changeLoadingState(true);
+      this._changeLoadingState(true);
     }
   }
 
@@ -375,14 +376,14 @@ export class ObservableDocument<T> {
       }
 
       this._data = NO_DATA;
-      this.changeLoadingState(false);
+      this._changeLoadingState(false);
     } else {
       if (this.isObserved) {
         this.logDebug("Change document -> update listeners");
         this.updateListeners(true);
       }
 
-      this.changeLoadingState(true);
+      this._changeLoadingState(true);
     }
   }
 
@@ -436,7 +437,7 @@ export class ObservableDocument<T> {
     }
   }
 
-  private changeLoadingState(isLoading: boolean) {
+  _changeLoadingState(isLoading: boolean) {
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
     this.isLoading = isLoading;
