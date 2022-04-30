@@ -6,6 +6,7 @@ import {
   onBecomeObserved,
   onBecomeUnobserved,
   runInAction,
+  toJS,
 } from "mobx";
 import { assert, createUniqueId } from "./utils";
 
@@ -125,7 +126,7 @@ export class ObservableDocument<T> {
   get data(): T | undefined {
     if (!this.documentRef || this._data === NO_DATA) return;
 
-    return this._data;
+    return toJS(this._data);
   }
 
   get document(): Document<T> | undefined {
@@ -138,7 +139,7 @@ export class ObservableDocument<T> {
      */
     return {
       id: this.documentRef.id,
-      data: this._data,
+      data: toJS(this._data),
       ref: this.documentRef,
     };
   }
