@@ -59,7 +59,7 @@ export class ObservableCollection<T> {
    * if the current listeners belong to that combination or we need to update
    * them
    */
-  public constructor(
+  constructor(
     /**
      * Ref is optional because for sub-collections you might not know the full
      * path in advance. Pass undefined if you want to supply the other
@@ -75,6 +75,7 @@ export class ObservableCollection<T> {
       isEmpty: computed,
       hasDocuments: computed,
       attachTo: action,
+      changeSource: action,
     });
 
     this.initializeReadyPromise();
@@ -109,11 +110,11 @@ export class ObservableCollection<T> {
     }
   }
 
-  public get isEmpty(): boolean {
+  get isEmpty(): boolean {
     return this.documents.length === 0;
   }
 
-  public get hasDocuments(): boolean {
+  get hasDocuments(): boolean {
     return this.documents.length > 0;
   }
 
@@ -121,15 +122,15 @@ export class ObservableCollection<T> {
     return this.observedCount > 0;
   }
 
-  public get path(): string | undefined {
+  get path(): string | undefined {
     return this.collectionRef ? this.collectionRef.path : undefined;
   }
 
-  public get ref(): FirebaseFirestore.CollectionReference | undefined {
+  get ref(): FirebaseFirestore.CollectionReference | undefined {
     return this.collectionRef;
   }
 
-  public attachTo(newRef: FirebaseFirestore.CollectionReference | undefined) {
+  attachTo(newRef: FirebaseFirestore.CollectionReference | undefined) {
     this.changeSource(newRef);
     /**
      * Return this so we can chain ready()
@@ -178,7 +179,7 @@ export class ObservableCollection<T> {
     }
   }
 
-  public async add(data: T) {
+  async add(data: T) {
     if (!hasReference(this.collectionRef)) {
       this.handleError(
         new Error(`Can not add a document to a collection that has no ref`),
@@ -191,7 +192,7 @@ export class ObservableCollection<T> {
     return this.collectionRef.add(data);
   }
 
-  public ready() {
+  ready() {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening) {
@@ -342,7 +343,7 @@ export class ObservableCollection<T> {
     });
   }
 
-  public set query(queryCreatorFn: QueryCreatorFn | undefined) {
+  set query(queryCreatorFn: QueryCreatorFn | undefined) {
     this.logDebug("Set query");
 
     this.queryCreatorFn = queryCreatorFn;

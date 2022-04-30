@@ -64,7 +64,7 @@ export class ObservableDocument<T> {
 
   onError?: (err: Error) => void;
 
-  public constructor(source?: SourceType<T>, options?: Options) {
+  constructor(source?: SourceType<T>, options?: Options) {
     makeObservable(this, {
       _data: observable,
       isLoading: observable,
@@ -120,13 +120,11 @@ export class ObservableDocument<T> {
     onBecomeUnobserved(this, "isLoading", () => this.suspendUpdates());
   }
 
-  public get id(): string {
+  get id(): string {
     return this.documentRef ? this.documentRef.id : "__no_id";
   }
 
-  public attachTo(
-    documentIdOrRef?: string | FirebaseFirestore.DocumentReference,
-  ) {
+  attachTo(documentIdOrRef?: string | FirebaseFirestore.DocumentReference) {
     if (!documentIdOrRef || typeof documentIdOrRef === "string") {
       this.changeSourceViaId(documentIdOrRef);
     } else {
@@ -139,13 +137,13 @@ export class ObservableDocument<T> {
     return this;
   }
 
-  public get data(): T | undefined {
+  get data(): T | undefined {
     if (!this.documentRef || this._data === NO_DATA) return;
 
     return this._data;
   }
 
-  public get document(): Document<T> | undefined {
+  get document(): Document<T> | undefined {
     if (!this.documentRef || this._data === NO_DATA) return;
 
     /**
@@ -164,19 +162,19 @@ export class ObservableDocument<T> {
     return this.observedCount > 0;
   }
 
-  public get ref(): FirebaseFirestore.DocumentReference | undefined {
+  get ref(): FirebaseFirestore.DocumentReference | undefined {
     return this.documentRef;
   }
 
-  public set ref(newRef: FirebaseFirestore.DocumentReference | undefined) {
+  set ref(newRef: FirebaseFirestore.DocumentReference | undefined) {
     this.changeSourceViaRef(newRef);
   }
 
-  public get path(): string | undefined {
+  get path(): string | undefined {
     return this.documentRef ? this.documentRef.path : undefined;
   }
 
-  public async update(
+  async update(
     fields: FirebaseFirestore.UpdateData,
     precondition?: FirebaseFirestore.Precondition,
   ) {
@@ -186,21 +184,21 @@ export class ObservableDocument<T> {
     return this.documentRef.update(fields, precondition);
   }
 
-  public async set(data: Partial<T>, options?: FirebaseFirestore.SetOptions) {
+  async set(data: Partial<T>, options?: FirebaseFirestore.SetOptions) {
     if (!this.documentRef) {
       throw Error("Can not set data on document with undefined ref");
     }
     return this.documentRef.set(data, options || {});
   }
 
-  public delete() {
+  delete() {
     if (!this.documentRef) {
       throw Error("Can not delete document with undefined ref");
     }
     return this.documentRef.delete();
   }
 
-  public ready(): Promise<T | undefined> {
+  ready(): Promise<T | undefined> {
     const isListening = !!this.onSnapshotUnsubscribeFn;
 
     if (!isListening && this.documentRef) {
@@ -220,7 +218,7 @@ export class ObservableDocument<T> {
     return this.readyPromise;
   }
 
-  public get hasData(): boolean {
+  get hasData(): boolean {
     return this._data !== NO_DATA;
   }
 
