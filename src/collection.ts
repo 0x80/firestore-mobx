@@ -1,5 +1,8 @@
 import {
-  makeAutoObservable,
+  action,
+  computed,
+  makeObservable,
+  observable,
   onBecomeObserved,
   onBecomeUnobserved,
   runInAction,
@@ -66,15 +69,13 @@ export class ObservableCollection<T> {
     queryCreatorFn?: QueryCreatorFn,
     options?: Options,
   ) {
-    // makeObservable(this, {
-    //   documents: observable,
-    //   isLoading: observable,
-    //   isEmpty: computed,
-    //   hasDocuments: computed,
-    //   attachTo: action,
-    // });
-
-    makeAutoObservable(this);
+    makeObservable(this, {
+      documents: observable,
+      isLoading: observable,
+      isEmpty: computed,
+      hasDocuments: computed,
+      attachTo: action,
+    });
 
     this.initializeReadyPromise();
     /**

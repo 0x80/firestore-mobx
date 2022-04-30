@@ -1,5 +1,9 @@
 import {
+  action,
+  computed,
   makeAutoObservable,
+  makeObservable,
+  observable,
   onBecomeObserved,
   onBecomeUnobserved,
   runInAction,
@@ -42,7 +46,7 @@ type SourceType<T> =
   | Document<T>;
 
 export class ObservableDocument<T> {
-  private _data: T | typeof NO_DATA = NO_DATA;
+  _data: T | typeof NO_DATA = NO_DATA;
   isLoading = false;
 
   private debugId = createUniqueId();
@@ -61,15 +65,14 @@ export class ObservableDocument<T> {
   onError?: (err: Error) => void;
 
   public constructor(source?: SourceType<T>, options?: Options) {
-    // makeObservable(this, {
-    //   _data: observable,
-    //   isLoading: observable,
-    //   data: computed,
-    //   document: computed,
-    //   attachTo: action,
-    //   hasData: computed,
-    // })
-    makeAutoObservable(this);
+    makeObservable(this, {
+      _data: observable,
+      isLoading: observable,
+      data: computed,
+      document: computed,
+      attachTo: action,
+      hasData: computed,
+    });
 
     if (options) {
       this.isDebugEnabled = options.debug || false;
