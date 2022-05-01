@@ -77,7 +77,7 @@ export class ObservableCollection<T> {
       attachTo: action,
       /**
        * attachTo being an action doesn't seem to be sufficient to prevent
-       * strict mode errors on mutating documents[]
+       * strict mode errors
        */
       _changeSource: action,
     });

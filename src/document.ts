@@ -71,6 +71,10 @@ export class ObservableDocument<T> {
       document: computed,
       attachTo: action,
       hasData: computed,
+      /**
+       * attachTo being an action doesn't seem to be sufficient to prevent
+       * strict mode errors.
+       */
       _changeLoadingState: action,
     });
 
@@ -124,14 +128,15 @@ export class ObservableDocument<T> {
     return this;
   }
 
-  get data(): T | undefined {
-    if (!this.documentRef || this._data === NO_DATA) return;
+  get data(): T /* | undefined */ {
+    assert(this.documentRef && this._data !== NO_DATA, "No data available");
+    // if (!this.documentRef || this._data === NO_DATA) return;
 
     return toJS(this._data);
   }
 
-  get document(): Document<T> | undefined {
-    if (!this.documentRef || this._data === NO_DATA) return;
+  get document(): Document<T> {
+    assert(this.documentRef && this._data !== NO_DATA, "No document available");
 
     /**
      * For document we return the data as non-observable by converting it to a
@@ -140,7 +145,7 @@ export class ObservableDocument<T> {
      */
     return {
       id: this.documentRef.id,
-      data: toJS(this._data),
+      data: this.data,
       ref: this.documentRef,
     };
   }
@@ -149,12 +154,9 @@ export class ObservableDocument<T> {
     return this.observedCount > 0;
   }
 
-  get ref(): FirebaseFirestore.DocumentReference | undefined {
+  get ref(): FirebaseFirestore.DocumentReference {
+    assert(this.documentRef, "No document ref available");
     return this.documentRef;
-  }
-
-  set ref(newRef: FirebaseFirestore.DocumentReference | undefined) {
-    this.changeSourceViaRef(newRef);
   }
 
   get path(): string | undefined {
@@ -218,14 +220,14 @@ export class ObservableDocument<T> {
 
       this.logDebug("Call ready resolve");
 
-      readyResolve(this.data);
+      readyResolve(this.hasData ? this.data : undefined);
 
       /**
        * After the first promise has been resolved we want subsequent calls to
        * ready() to immediately return with the available data. Ready is only
        * meant to be used for initial data fetching
        */
-      this.readyPromise = Promise.resolve(this.data);
+      this.readyPromise = Promise.resolve(this.hasData ? this.data : undefined);
     }
   }
 
