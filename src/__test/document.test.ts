@@ -1,4 +1,4 @@
-import { autorun, configure } from "mobx";
+import { autorun, configure, toJS } from "mobx";
 import { ObservableDocument } from "../document";
 import { first } from "../utils";
 import {
@@ -41,7 +41,8 @@ describe("Document", () => {
     expect(document.id).toBe("__no_id");
     expect(document.isLoading).toBe(false);
     expect(document.hasData).toBe(false);
-    expect(document.data).toBe(undefined);
+    expect(() => document.data).toThrow();
+    expect(() => document.document).toThrow();
   });
 
   it("Can observe a document by ref", async () => {
@@ -54,7 +55,6 @@ describe("Document", () => {
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
-    expect(document.data).toBeUndefined();
 
     await document.ready().then((doc) => console.log(doc));
 
@@ -78,7 +78,6 @@ describe("Document", () => {
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
-    expect(document.data).toBeUndefined();
 
     const disposeListeners = autorun(() => {
       console.log("isLoading", document.isLoading);
@@ -106,7 +105,6 @@ describe("Document", () => {
 
     expect(document.isLoading).toBe(false);
     expect(document.hasData).toBe(false);
-    expect(document.data).toBeUndefined();
 
     document.attachTo(first(snapshot.docs)?.id);
 
@@ -132,9 +130,6 @@ describe("Document", () => {
 
     expect(document.isLoading).toBe(false);
     expect(document.hasData).toBe(false);
-    expect(document.data).toBeUndefined();
-
-    // consoleInspect('snapshot', snapshot.docs.map(doc => doc.data))
 
     document.attachTo(first(snapshot.docs)?.id);
 
@@ -154,7 +149,6 @@ describe("Document", () => {
 
     const data = await document.ready();
 
-    // consoleInspect('data', doc?.data)
     expect(data).toEqual(first(collectionData));
 
     disposeListeners();
