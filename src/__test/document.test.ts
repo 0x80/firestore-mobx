@@ -1,6 +1,6 @@
-import { autorun, configure, toJS } from "mobx";
+import { autorun, configure } from "mobx";
 import { ObservableDocument } from "../document";
-import { first } from "../utils";
+import { first, last } from "../utils";
 import {
   clearDataset,
   collectionData,
@@ -150,6 +150,51 @@ describe("Document", () => {
     const data = await document.ready();
 
     expect(data).toEqual(first(collectionData));
+
+    disposeListeners();
+  });
+
+  it("Should resolve ready after changing documents", async () => {
+    const snapshot = await db
+      .collection(collectionName)
+      .orderBy("count", "asc")
+      .get();
+
+    const document = new ObservableDocument<TestDocumentA>(
+      db.collection(collectionName),
+      { debug: false },
+    );
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(false);
+
+    /**
+     * Set up listeners because it changes the behavior for ready()
+     */
+    const disposeListeners = autorun(() => {
+      console.log("isLoading", document.isLoading);
+    });
+
+    {
+      document.attachTo(first(snapshot.docs)?.id);
+
+      expect(document.isLoading).toBe(true);
+      expect(document.hasData).toBe(false);
+
+      const data = await document.ready();
+
+      expect(data).toEqual(first(collectionData));
+    }
+    {
+      document.attachTo(last(snapshot.docs)?.id);
+
+      expect(document.isLoading).toBe(true);
+      expect(document.hasData).toBe(false);
+
+      const data = await document.ready();
+
+      expect(data).toEqual(last(collectionData));
+    }
 
     disposeListeners();
   });

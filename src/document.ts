@@ -45,7 +45,7 @@ type SourceType =
   | FirebaseFirestore.CollectionReference;
 
 export class ObservableDocument<T> {
-  _data: T | typeof NO_DATA = NO_DATA;
+  _data?: T;
   isLoading = false;
 
   private debugId = createUniqueId();
@@ -129,14 +129,14 @@ export class ObservableDocument<T> {
   }
 
   get data(): T /* | undefined */ {
-    assert(this.documentRef && this._data !== NO_DATA, "No data available");
+    assert(this.documentRef && this._data, "No data available");
     // if (!this.documentRef || this._data === NO_DATA) return;
 
     return toJS(this._data);
   }
 
   get document(): Document<T> {
-    assert(this.documentRef && this._data !== NO_DATA, "No document available");
+    assert(this.documentRef && this._data, "No document available");
 
     /**
      * For document we return the data as non-observable by converting it to a
@@ -208,7 +208,7 @@ export class ObservableDocument<T> {
   }
 
   get hasData(): boolean {
-    return this._data !== NO_DATA;
+    return typeof this._data !== "undefined";
   }
 
   private changeReady(isReady: boolean) {
@@ -254,6 +254,7 @@ export class ObservableDocument<T> {
     this.documentRef
       .get()
       .then((snapshot) => this.handleSnapshot(snapshot))
+      // .then(() => this.changeReady(true))
       .catch((err) =>
         console.error(`Fetch initial data failed: ${err.message}`),
       );
@@ -284,7 +285,7 @@ export class ObservableDocument<T> {
 
   private handleSnapshot(snapshot: FirebaseFirestore.DocumentSnapshot) {
     runInAction(() => {
-      this._data = snapshot.exists ? (snapshot.data() as T) : NO_DATA;
+      this._data = snapshot.exists ? (snapshot.data() as T) : undefined;
 
       this._changeLoadingState(false);
     });
@@ -319,6 +320,8 @@ export class ObservableDocument<T> {
 
     this.initializeReadyPromise();
 
+    this._data = undefined;
+
     // @TODO make DRY
     if (!hasSource) {
       if (this.isObserved) {
@@ -326,7 +329,7 @@ export class ObservableDocument<T> {
         this.updateListeners(false);
       }
 
-      this._data = NO_DATA;
+      // this._data = NO_DATA;
       this._changeLoadingState(false);
     } else {
       if (this.isObserved) {
@@ -370,6 +373,8 @@ export class ObservableDocument<T> {
 
     this.initializeReadyPromise();
 
+    this._data = undefined;
+
     // @TODO make DRY
     if (!hasSource) {
       if (this.isObserved) {
@@ -377,7 +382,6 @@ export class ObservableDocument<T> {
         this.updateListeners(false);
       }
 
-      this._data = NO_DATA;
       this._changeLoadingState(false);
     } else {
       if (this.isObserved) {
