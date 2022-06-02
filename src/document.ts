@@ -128,24 +128,17 @@ export class ObservableDocument<T> {
     return this;
   }
 
-  get data(): T /* | undefined */ {
-    assert(this.documentRef && this._data, "No data available");
-    // if (!this.documentRef || this._data === NO_DATA) return;
-
-    return toJS(this._data);
+  get data(): T {
+    assert(this._data, "No data available");
+    return this._data;
   }
 
   get document(): Document<T> {
     assert(this.documentRef && this._data, "No document available");
 
-    /**
-     * For document we return the data as non-observable by converting it to a
-     * JS object. Not sure if we need this but seems logical. If you want to
-     * observable data you can use the data property directly.
-     */
     return {
       id: this.documentRef.id,
-      data: this.data,
+      data: this._data,
       ref: this.documentRef,
     };
   }
