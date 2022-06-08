@@ -1,4 +1,4 @@
-import { autorun, configure } from "mobx";
+import { autorun } from "mobx";
 import { ObservableDocument } from "../document";
 import { first, last } from "../utils";
 import {
@@ -9,10 +9,6 @@ import {
   initializeDataset,
   TestDocumentA,
 } from "./helpers";
-
-configure({
-  enforceActions: "always",
-});
 
 describe("Document", () => {
   /**
@@ -35,7 +31,7 @@ describe("Document", () => {
     clearDataset().then(done);
   });
 
-  it("Should initialize", () => {
+  it("Should initialize correctly", () => {
     const document = new ObservableDocument();
 
     expect(document.id).toBe("__no_id");
@@ -69,12 +65,9 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
-    const document = new ObservableDocument(db.collection(collectionName));
-
-    document
-      .attachTo(first(snapshot.docs)?.id)
-      .ready()
-      .then((doc) => console.log("attachTo.ready", doc));
+    const document = new ObservableDocument(
+      db.collection(collectionName).doc(first(snapshot.docs)?.id),
+    );
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
@@ -90,6 +83,54 @@ describe("Document", () => {
     expect(document.data).toEqual(first(collectionData));
 
     disposeListeners();
+  });
+
+  it("Can attach to a document", async () => {
+    const snapshot = await db
+      .collection(collectionName)
+      .orderBy("count", "asc")
+      .get();
+
+    const document = new ObservableDocument(db.collection(collectionName));
+
+    expect(document.isLoading).toBe(false);
+
+    document.attachTo(first(snapshot.docs)?.id);
+    expect(document.isLoading).toBe(true);
+    expect(document.hasData).toBe(false);
+
+    await document.ready();
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(true);
+    expect(document.data).toEqual(first(collectionData));
+  });
+
+  it("Triggers no operation when re-attaching to the same source", async () => {
+    const snapshot = await db
+      .collection(collectionName)
+      .orderBy("count", "asc")
+      .get();
+
+    const document = new ObservableDocument(db.collection(collectionName));
+
+    expect(document.isLoading).toBe(false);
+
+    document.attachTo(first(snapshot.docs)?.id);
+    expect(document.isLoading).toBe(true);
+    expect(document.hasData).toBe(false);
+
+    await document.ready();
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(true);
+    expect(document.data).toEqual(first(collectionData));
+
+    document.attachTo(first(snapshot.docs)?.id);
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(true);
+    expect(document.data).toEqual(first(collectionData));
   });
 
   it("Should return data on ready without listeners", async () => {
@@ -184,7 +225,11 @@ describe("Document", () => {
       const data = await document.ready();
 
       expect(data).toEqual(first(collectionData));
+
+      expect(document.isLoading).toBe(false);
+      expect(document.hasData).toBe(true);
     }
+
     {
       document.attachTo(last(snapshot.docs)?.id);
 
@@ -194,6 +239,9 @@ describe("Document", () => {
       const data = await document.ready();
 
       expect(data).toEqual(last(collectionData));
+
+      expect(document.isLoading).toBe(false);
+      expect(document.hasData).toBe(true);
     }
 
     disposeListeners();
@@ -249,5 +297,38 @@ describe("Document", () => {
     const dataB = await document.ready();
 
     expect(dataA).toStrictEqual(dataB);
+  });
+
+  it("Should fire onData before ready", async () => {
+    const snapshot = await db
+      .collection(collectionName)
+      .orderBy("count", "asc")
+      .get();
+
+    const document = new ObservableDocument<TestDocumentA>(
+      db.collection(collectionName),
+    );
+
+    {
+      document.attachTo(first(snapshot.docs)?.id);
+
+      expect(document.isLoading).toBe(true);
+      expect(document.hasData).toBe(false);
+
+      let receivedData = false;
+
+      document.onData((data) => {
+        receivedData = true;
+
+        expect(data).toEqual(first(collectionData));
+      });
+
+      document
+        .ready()
+        .then(() => {
+          expect(receivedData).toBe(true);
+        })
+        .catch((err) => console.log(err));
+    }
   });
 });

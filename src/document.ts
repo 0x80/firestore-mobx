@@ -6,7 +6,6 @@ import {
   onBecomeObserved,
   onBecomeUnobserved,
   runInAction,
-  toJS,
 } from "mobx";
 import { assert, createUniqueId } from "./utils";
 
@@ -61,23 +60,10 @@ export class ObservableDocument<T> {
   private sourcePath?: string;
   private listenerSourcePath?: string;
 
-  onError?: (err: Error) => void;
+  private onErrorCallback?: (err: Error) => void;
+  private onDataCallback?: (data: T) => void;
 
   constructor(source?: SourceType, options?: Options) {
-    makeObservable(this, {
-      _data: observable,
-      isLoading: observable,
-      data: computed,
-      document: computed,
-      attachTo: action,
-      hasData: computed,
-      /**
-       * attachTo being an action doesn't seem to be sufficient to prevent
-       * strict mode errors.
-       */
-      _changeLoadingState: action,
-    });
-
     if (options) {
       this.isDebugEnabled = options.debug || false;
     }
@@ -101,8 +87,21 @@ export class ObservableDocument<T> {
        * In this case we have data to wait on from the start. So initialize the
        * promise and resolve function.
        */
-      this._changeLoadingState(true);
+      this.changeLoadingState(true);
     }
+
+    /**
+     * By placing the Mobx initialization after calling changeLoadingState we
+     * prevent having to make that private method an action.
+     */
+    makeObservable(this, {
+      _data: observable,
+      isLoading: observable,
+      data: computed,
+      document: computed,
+      attachTo: action,
+      hasData: computed,
+    });
 
     onBecomeObserved(this, "_data", () => this.resumeUpdates());
     onBecomeUnobserved(this, "_data", () => this.suspendUpdates());
@@ -143,6 +142,16 @@ export class ObservableDocument<T> {
     };
   }
 
+  onError(cb: (err: Error) => void) {
+    this.onErrorCallback = cb;
+    return this;
+  }
+
+  onData(cb: (data: T) => void) {
+    this.onDataCallback = cb;
+    return this;
+  }
+
   private get isObserved(): boolean {
     return this.observedCount > 0;
   }
@@ -161,21 +170,27 @@ export class ObservableDocument<T> {
     precondition?: FirebaseFirestore.Precondition,
   ) {
     if (!this.documentRef) {
-      throw Error("Can not update data on document with undefined ref");
+      return this.handleError(
+        new Error("Can not update data on document with undefined ref"),
+      );
     }
     return this.documentRef.update(fields, precondition);
   }
 
   async set(data: Partial<T>, options?: FirebaseFirestore.SetOptions) {
     if (!this.documentRef) {
-      throw Error("Can not set data on document with undefined ref");
+      return this.handleError(
+        new Error("Can not set data on document with undefined ref"),
+      );
     }
     return this.documentRef.set(data, options || {});
   }
 
   delete() {
     if (!this.documentRef) {
-      throw Error("Can not delete document with undefined ref");
+      return this.handleError(
+        new Error("Can not delete document with undefined ref"),
+      );
     }
     return this.documentRef.delete();
   }
@@ -249,7 +264,9 @@ export class ObservableDocument<T> {
       .then((snapshot) => this.handleSnapshot(snapshot))
       // .then(() => this.changeReady(true))
       .catch((err) =>
-        console.error(`Fetch initial data failed: ${err.message}`),
+        this.handleError(
+          new Error(`Fetch initial data failed: ${err.message}`),
+        ),
       );
     this.firedInitialFetch = true;
   }
@@ -280,7 +297,18 @@ export class ObservableDocument<T> {
     runInAction(() => {
       this._data = snapshot.exists ? (snapshot.data() as T) : undefined;
 
-      this._changeLoadingState(false);
+      /**
+       * We only need to call back if data exists. This function needs to fire
+       * before the loading/ready state is set, so that one document can depend
+       * on data from another. For example `isSomethingLoading = a.isLoading ||
+       * b.isLoading` would not work if a has isLoading false before b is able
+       * to access the data via the callback.
+       */
+      if (snapshot.exists && typeof this.onDataCallback === "function") {
+        this.onDataCallback(snapshot.data() as T);
+      }
+
+      this.changeLoadingState(false);
     });
   }
 
@@ -288,8 +316,8 @@ export class ObservableDocument<T> {
    * If there is an error handler callback we use that, otherwise we throw.
    */
   private handleError(err: Error) {
-    if (typeof this.onError === "function") {
-      this.onError(err);
+    if (typeof this.onErrorCallback === "function") {
+      this.onErrorCallback(err);
     } else {
       throw err;
     }
@@ -322,15 +350,14 @@ export class ObservableDocument<T> {
         this.updateListeners(false);
       }
 
-      // this._data = NO_DATA;
-      this._changeLoadingState(false);
+      this.changeLoadingState(false);
     } else {
       if (this.isObserved) {
         this.logDebug("Change document -> update listeners");
         this.updateListeners(true);
       }
 
-      this._changeLoadingState(true);
+      this.changeLoadingState(true);
     }
   }
 
@@ -375,14 +402,14 @@ export class ObservableDocument<T> {
         this.updateListeners(false);
       }
 
-      this._changeLoadingState(false);
+      this.changeLoadingState(false);
     } else {
       if (this.isObserved) {
         this.logDebug("Change document -> update listeners");
         this.updateListeners(true);
       }
 
-      this._changeLoadingState(true);
+      this.changeLoadingState(true);
     }
   }
 
@@ -436,7 +463,7 @@ export class ObservableDocument<T> {
     }
   }
 
-  _changeLoadingState(isLoading: boolean) {
+  private changeLoadingState(isLoading: boolean) {
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
     this.isLoading = isLoading;
