@@ -1,6 +1,6 @@
 {
   "name": "firestore-mobx",
-  "version": "2.0.0-16",
+  "version": "2.0.0-17",
   "description": "Observable Firestore documents and collections using MobX",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
@@ -11,7 +11,7 @@
   "scripts": {
     "install-peers": "install-peers -f",
     "build": "rollup -c",
-    "release": "yarn build && np",
+    "release": "yarn build && np --no-cleanup",
     "emulate": "firebase emulators:start --only firestore",
     "test": "dotenv -e .env -- jest --env node --maxWorkers 1",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
