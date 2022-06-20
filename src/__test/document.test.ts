@@ -41,7 +41,7 @@ describe("Document", () => {
     expect(() => document.document).toThrow();
   });
 
-  it("Can observe a document by ref", async () => {
+  it("Can construct a document from ref", async () => {
     const snapshot = await db
       .collection(collectionName)
       .orderBy("count", "asc")
@@ -59,33 +59,7 @@ describe("Document", () => {
     expect(document.data).toEqual(first(collectionData));
   });
 
-  it("Can observe a document by id", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
-
-    const document = new ObservableDocument(
-      db.collection(collectionName).doc(first(snapshot.docs)?.id),
-    );
-
-    expect(document.isLoading).toBe(true);
-    expect(document.hasData).toBe(false);
-
-    const disposeListeners = autorun(() => {
-      console.log("isLoading", document.isLoading);
-    });
-
-    await document.ready();
-
-    expect(document.isLoading).toBe(false);
-    expect(document.hasData).toBe(true);
-    expect(document.data).toEqual(first(collectionData));
-
-    disposeListeners();
-  });
-
-  it("Can attach to a document", async () => {
+  it("Can attach to a document id", async () => {
     const snapshot = await db
       .collection(collectionName)
       .orderBy("count", "asc")
@@ -106,7 +80,7 @@ describe("Document", () => {
     expect(document.data).toEqual(first(collectionData));
   });
 
-  it("Triggers no operation when re-attaching to the same source", async () => {
+  it("Performs no operation when re-attaching to the same id", async () => {
     const snapshot = await db
       .collection(collectionName)
       .orderBy("count", "asc")
@@ -247,7 +221,7 @@ describe("Document", () => {
     disposeListeners();
   });
 
-  it("Passes undefined on ready when not found", async () => {
+  it("Returns undefined data on ready when not found", async () => {
     const document = new ObservableDocument<TestDocumentA>(
       db.collection(collectionName),
     );
@@ -299,7 +273,7 @@ describe("Document", () => {
     expect(dataA).toStrictEqual(dataB);
   });
 
-  it("Should fire onData before ready", async () => {
+  it("Should fire onData before ready resolves", async () => {
     const snapshot = await db
       .collection(collectionName)
       .orderBy("count", "asc")

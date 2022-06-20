@@ -6,6 +6,7 @@ import {
   onBecomeObserved,
   onBecomeUnobserved,
   runInAction,
+  toJS,
 } from "mobx";
 import { assert, createUniqueId } from "./utils";
 
@@ -129,7 +130,7 @@ export class ObservableDocument<T> {
 
   get data(): T {
     assert(this._data, "No data available");
-    return this._data;
+    return toJS(this._data);
   }
 
   get document(): Document<T> {
@@ -137,7 +138,7 @@ export class ObservableDocument<T> {
 
     return {
       id: this.documentRef.id,
-      data: this._data,
+      data: toJS(this._data),
       ref: this.documentRef,
     };
   }
@@ -343,7 +344,7 @@ export class ObservableDocument<T> {
 
     this._data = undefined;
 
-    // @TODO make DRY
+    // @TODO make D.R.Y.
     if (!hasSource) {
       if (this.isObserved) {
         this.logDebug("Change document -> clear listeners");
