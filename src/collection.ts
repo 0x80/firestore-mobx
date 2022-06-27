@@ -1,4 +1,11 @@
 import {
+  CollectionReference,
+  DocumentReference,
+  Query,
+  SetOptions,
+  UpdateData,
+} from "@firebase/firestore";
+import {
   action,
   computed,
   makeObservable,
@@ -7,6 +14,7 @@ import {
   onBecomeUnobserved,
   runInAction,
 } from "mobx";
+
 import { Document } from "./document";
 import { assert, createUniqueId } from "./utils";
 
@@ -24,13 +32,9 @@ const optionDefaults: Options = {
   debug: false,
 };
 
-type QueryCreatorFn = (
-  ref: FirebaseFirestore.CollectionReference,
-) => FirebaseFirestore.Query;
+type QueryCreatorFn = (ref: CollectionReference) => Query;
 
-function hasReference(
-  ref?: FirebaseFirestore.CollectionReference,
-): ref is FirebaseFirestore.CollectionReference {
+function hasReference(ref?: CollectionReference): ref is CollectionReference {
   return !!ref;
 }
 
@@ -39,8 +43,8 @@ export class ObservableCollection<T> {
   isLoading = false;
 
   private debugId = createUniqueId();
-  private collectionRef?: FirebaseFirestore.CollectionReference;
-  private _query?: FirebaseFirestore.Query;
+  private collectionRef?: CollectionReference;
+  private _query?: Query;
   private queryCreatorFn?: QueryCreatorFn;
   private isDebugEnabled = false;
   private readyPromise?: Promise<Document<T>[]>;
@@ -65,7 +69,7 @@ export class ObservableCollection<T> {
      * path in advance. Pass undefined if you want to supply the other
      * parameters
      */
-    ref?: FirebaseFirestore.CollectionReference,
+    ref?: CollectionReference,
     queryCreatorFn?: QueryCreatorFn,
     options?: Options,
   ) {
@@ -86,7 +90,7 @@ export class ObservableCollection<T> {
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
      * because then we could make a single source parameter
-     * FirebaseFirestore.CollectionReference | FirebaseFirestore.Query
+     * CollectionReference | Query
      */
     if (hasReference(ref)) {
       this.collectionRef = ref;
@@ -130,11 +134,11 @@ export class ObservableCollection<T> {
     return this.collectionRef ? this.collectionRef.path : undefined;
   }
 
-  get ref(): FirebaseFirestore.CollectionReference | undefined {
+  get ref(): CollectionReference | undefined {
     return this.collectionRef;
   }
 
-  attachTo(newRef: FirebaseFirestore.CollectionReference | undefined) {
+  attachTo(newRef: CollectionReference | undefined) {
     this._changeSource(newRef);
     /**
      * Return this so we can chain ready()
@@ -142,7 +146,7 @@ export class ObservableCollection<T> {
     return this;
   }
 
-  _changeSource(newRef?: FirebaseFirestore.CollectionReference) {
+  _changeSource(newRef?: CollectionReference) {
     if (!this.collectionRef && !newRef) {
       // this.logDebug("Ignore change source");
       return;
@@ -314,7 +318,7 @@ export class ObservableCollection<T> {
     }
   }
 
-  private handleSnapshot(snapshot: FirebaseFirestore.QuerySnapshot) {
+  private handleSnapshot(snapshot: QuerySnapshot) {
     this.logDebug(
       `handleSnapshot, ${Date.now()} docs.length: ${snapshot.docs.length}`,
     );

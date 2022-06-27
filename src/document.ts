@@ -1,4 +1,11 @@
 import {
+  CollectionReference,
+  DocumentReference,
+  Query,
+  SetOptions,
+  UpdateData,
+} from "@firebase/firestore";
+import {
   action,
   computed,
   makeObservable,
@@ -17,40 +24,34 @@ interface Options {
 export interface Document<T> {
   id: string;
   data: T;
-  ref: FirebaseFirestore.DocumentReference;
+  ref: DocumentReference;
 }
 
-function isDocumentReference(
-  source: SourceType,
-): source is FirebaseFirestore.DocumentReference {
-  return (source as FirebaseFirestore.DocumentReference).set !== undefined;
+function isDocumentReference(source: SourceType): source is DocumentReference {
+  return (source as DocumentReference).set !== undefined;
 }
 
 function isCollectionReference(
   source: SourceType,
-): source is FirebaseFirestore.CollectionReference {
-  return (source as FirebaseFirestore.CollectionReference).doc !== undefined;
+): source is CollectionReference {
+  return (source as CollectionReference).doc !== undefined;
 }
 
-function getPathFromCollectionRef(
-  collectionRef?: FirebaseFirestore.CollectionReference,
-) {
+function getPathFromCollectionRef(collectionRef?: CollectionReference) {
   return collectionRef ? `${collectionRef.path}/__no_document_id` : undefined;
 }
 
 const NO_DATA = "__no_data" as const;
 
-type SourceType =
-  | FirebaseFirestore.DocumentReference
-  | FirebaseFirestore.CollectionReference;
+type SourceType = DocumentReference | CollectionReference;
 
 export class ObservableDocument<T> {
   _data?: T;
   isLoading = false;
 
   private debugId = createUniqueId();
-  private documentRef?: FirebaseFirestore.DocumentReference;
-  private collectionRef?: FirebaseFirestore.CollectionReference;
+  private documentRef?: DocumentReference;
+  private collectionRef?: CollectionReference;
   private isDebugEnabled = false;
 
   private readyPromise?: Promise<T | undefined>;
@@ -115,7 +116,7 @@ export class ObservableDocument<T> {
     return this.documentRef ? this.documentRef.id : "__no_id";
   }
 
-  attachTo(documentIdOrRef?: string | FirebaseFirestore.DocumentReference) {
+  attachTo(documentIdOrRef?: string | DocumentReference) {
     if (!documentIdOrRef || typeof documentIdOrRef === "string") {
       this.changeSourceViaId(documentIdOrRef);
     } else {
@@ -157,7 +158,7 @@ export class ObservableDocument<T> {
     return this.observedCount > 0;
   }
 
-  get ref(): FirebaseFirestore.DocumentReference {
+  get ref(): DocumentReference {
     assert(this.documentRef, "No document ref available");
     return this.documentRef;
   }
@@ -166,10 +167,7 @@ export class ObservableDocument<T> {
     return this.documentRef ? this.documentRef.path : undefined;
   }
 
-  async update(
-    fields: FirebaseFirestore.UpdateData,
-    precondition?: FirebaseFirestore.Precondition,
-  ) {
+  async update(fields: UpdateData, precondition?: Precondition) {
     if (!this.documentRef) {
       return this.handleError(
         new Error("Can not update data on document with undefined ref"),
@@ -178,7 +176,7 @@ export class ObservableDocument<T> {
     return this.documentRef.update(fields, precondition);
   }
 
-  async set(data: Partial<T>, options?: FirebaseFirestore.SetOptions) {
+  async set(data: Partial<T>, options?: SetOptions) {
     if (!this.documentRef) {
       return this.handleError(
         new Error("Can not set data on document with undefined ref"),
@@ -294,7 +292,7 @@ export class ObservableDocument<T> {
     }
   }
 
-  private handleSnapshot(snapshot: FirebaseFirestore.DocumentSnapshot) {
+  private handleSnapshot(snapshot: DocumentSnapshot) {
     runInAction(() => {
       this._data = snapshot.exists ? (snapshot.data() as T) : undefined;
 
@@ -324,7 +322,7 @@ export class ObservableDocument<T> {
     }
   }
 
-  private changeSourceViaRef(ref?: FirebaseFirestore.DocumentReference) {
+  private changeSourceViaRef(ref?: DocumentReference) {
     const newPath = ref ? ref.path : undefined;
     // const oldPath = this._ref ? this._ref.path : undefined;
 

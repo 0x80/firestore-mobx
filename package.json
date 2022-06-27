@@ -29,10 +29,10 @@
   },
   "homepage": "https://github.com/0x80/firestore-mobx#readme",
   "peerDependencies": {
-    "firebase": "^9.0.0",
     "mobx": "^6.0.0"
   },
   "dependencies": {
+    "firebase": "^9.8.4",
     "nanoid": "^3"
   },
   "devDependencies": {
