@@ -33,7 +33,7 @@
     "mobx": "^6.0.0"
   },
   "dependencies": {
-    "nanoid": "^4.0.0"
+    "nanoid": "^3"
   },
   "devDependencies": {
     "@babel/core": "^7.18.5",
