@@ -70,7 +70,7 @@ export class ObservableCollection<T> {
      * path in advance. Pass undefined if you want to supply the other
      * parameters
      */
-    ref?: CollectionReference<T>,
+    ref?: CollectionReference<DocumentData>,
     queryCreatorFn?: QueryCreatorFn,
     options?: Options,
   ) {
