@@ -1,9 +1,10 @@
 import {
   CollectionReference,
-  DocumentReference,
+  getDocs,
+  onSnapshot,
   Query,
-  SetOptions,
-  UpdateData,
+  queryEqual,
+  QuerySnapshot,
 } from "@firebase/firestore";
 import {
   action,
@@ -69,7 +70,7 @@ export class ObservableCollection<T> {
      * path in advance. Pass undefined if you want to supply the other
      * parameters
      */
-    ref?: CollectionReference,
+    ref?: CollectionReference<T>,
     queryCreatorFn?: QueryCreatorFn,
     options?: Options,
   ) {
@@ -134,11 +135,12 @@ export class ObservableCollection<T> {
     return this.collectionRef ? this.collectionRef.path : undefined;
   }
 
-  get ref(): CollectionReference | undefined {
-    return this.collectionRef;
+  get ref() {
+    assert(this.collectionRef, "No collection ref available");
+    return this.collectionRef as CollectionReference<T>;
   }
 
-  attachTo(newRef: CollectionReference | undefined) {
+  attachTo(newRef?: CollectionReference) {
     this._changeSource(newRef);
     /**
      * Return this so we can chain ready()
@@ -148,12 +150,14 @@ export class ObservableCollection<T> {
 
   _changeSource(newRef?: CollectionReference) {
     if (!this.collectionRef && !newRef) {
-      // this.logDebug("Ignore change source");
       return;
     }
 
-    if (this.collectionRef && newRef && this.collectionRef.isEqual(newRef)) {
-      // this.logDebug("Ignore change source");
+    if (
+      this.collectionRef &&
+      newRef &&
+      this.collectionRef.path === newRef.path
+    ) {
       return;
     }
 
@@ -185,19 +189,6 @@ export class ObservableCollection<T> {
       this.documents = [];
       this.changeLoadingState(false);
     }
-  }
-
-  async add(data: T) {
-    if (!hasReference(this.collectionRef)) {
-      this.handleError(
-        new Error(`Can not add a document to a collection that has no ref`),
-      );
-      return Promise.reject(
-        `Can not add a document to a collection that has no ref`,
-      );
-    }
-
-    return this.collectionRef.add(data);
   }
 
   ready() {
@@ -266,8 +257,7 @@ export class ObservableCollection<T> {
      * listener would.
      */
     if (this._query) {
-      this._query
-        .get()
+      getDocs(this._query)
         .then((snapshot) => this.handleSnapshot(snapshot))
         .catch((err) =>
           this.handleError(
@@ -275,8 +265,7 @@ export class ObservableCollection<T> {
           ),
         );
     } else {
-      this.collectionRef
-        .get()
+      getDocs(this.ref)
         .then((snapshot) => this.handleSnapshot(snapshot))
         .catch((err) =>
           this.handleError(
@@ -366,7 +355,7 @@ export class ObservableCollection<T> {
      * If we set a query that matches the currently active query it would be a
      * no-op.
      */
-    if (newQuery && this._query && newQuery.isEqual(this._query)) {
+    if (newQuery && this._query && queryEqual(newQuery, this._query)) {
       return;
     }
 
@@ -435,7 +424,8 @@ export class ObservableCollection<T> {
       this.logDebug("Subscribe listeners");
 
       if (this._query) {
-        this.onSnapshotUnsubscribeFn = this._query.onSnapshot(
+        this.onSnapshotUnsubscribeFn = onSnapshot(
+          this._query,
           executeFromCount(
             (snapshot) => this.handleSnapshot(snapshot),
             this.options.ignoreInitialSnapshot ? 1 : 0,
@@ -443,7 +433,8 @@ export class ObservableCollection<T> {
           (err) => this.handleError(err),
         );
       } else if (this.collectionRef) {
-        this.onSnapshotUnsubscribeFn = this.collectionRef.onSnapshot(
+        this.onSnapshotUnsubscribeFn = onSnapshot(
+          this.collectionRef,
           executeFromCount(
             (snapshot) => this.handleSnapshot(snapshot),
             this.options.ignoreInitialSnapshot ? 1 : 0,

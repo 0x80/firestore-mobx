@@ -1,9 +1,10 @@
 import {
   CollectionReference,
+  doc,
   DocumentReference,
-  Query,
-  SetOptions,
-  UpdateData,
+  DocumentSnapshot,
+  getDoc,
+  onSnapshot,
 } from "@firebase/firestore";
 import {
   action,
@@ -28,13 +29,13 @@ export interface Document<T> {
 }
 
 function isDocumentReference(source: SourceType): source is DocumentReference {
-  return (source as DocumentReference).set !== undefined;
+  return (source as DocumentReference).type === "document";
 }
 
 function isCollectionReference(
   source: SourceType,
 ): source is CollectionReference {
-  return (source as CollectionReference).doc !== undefined;
+  return (source as CollectionReference).type === "collection";
 }
 
 function getPathFromCollectionRef(collectionRef?: CollectionReference) {
@@ -43,7 +44,7 @@ function getPathFromCollectionRef(collectionRef?: CollectionReference) {
 
 const NO_DATA = "__no_data" as const;
 
-type SourceType = DocumentReference | CollectionReference;
+export type SourceType = DocumentReference | CollectionReference;
 
 export class ObservableDocument<T> {
   _data?: T;
@@ -158,40 +159,13 @@ export class ObservableDocument<T> {
     return this.observedCount > 0;
   }
 
-  get ref(): DocumentReference {
+  get ref() {
     assert(this.documentRef, "No document ref available");
-    return this.documentRef;
+    return this.documentRef as DocumentReference<T>;
   }
 
   get path(): string | undefined {
     return this.documentRef ? this.documentRef.path : undefined;
-  }
-
-  async update(fields: UpdateData, precondition?: Precondition) {
-    if (!this.documentRef) {
-      return this.handleError(
-        new Error("Can not update data on document with undefined ref"),
-      );
-    }
-    return this.documentRef.update(fields, precondition);
-  }
-
-  async set(data: Partial<T>, options?: SetOptions) {
-    if (!this.documentRef) {
-      return this.handleError(
-        new Error("Can not set data on document with undefined ref"),
-      );
-    }
-    return this.documentRef.set(data, options || {});
-  }
-
-  delete() {
-    if (!this.documentRef) {
-      return this.handleError(
-        new Error("Can not delete document with undefined ref"),
-      );
-    }
-    return this.documentRef.delete();
   }
 
   ready(): Promise<T | undefined> {
@@ -258,15 +232,14 @@ export class ObservableDocument<T> {
      * will resolve the ready promise just like the snapshot passed in from the
      * normal listener.
      */
-    this.documentRef
-      .get()
+    getDoc(this.ref)
       .then((snapshot) => this.handleSnapshot(snapshot))
-      // .then(() => this.changeReady(true))
       .catch((err) =>
         this.handleError(
           new Error(`Fetch initial data failed: ${err.message}`),
         ),
       );
+
     this.firedInitialFetch = true;
   }
 
@@ -292,9 +265,9 @@ export class ObservableDocument<T> {
     }
   }
 
-  private handleSnapshot(snapshot: DocumentSnapshot) {
+  private handleSnapshot(snapshot: DocumentSnapshot<T>) {
     runInAction(() => {
-      this._data = snapshot.exists ? (snapshot.data() as T) : undefined;
+      this._data = snapshot.exists() ? snapshot.data() : undefined;
 
       /**
        * We only need to call back if data exists. This function needs to fire
@@ -303,8 +276,8 @@ export class ObservableDocument<T> {
        * b.isLoading` would not work if a has isLoading false before b is able
        * to access the data via the callback.
        */
-      if (snapshot.exists && typeof this.onDataCallback === "function") {
-        this.onDataCallback(snapshot.data() as T);
+      if (snapshot.exists() && typeof this.onDataCallback === "function") {
+        this.onDataCallback(snapshot.data());
       }
 
       this.changeLoadingState(false);
@@ -323,15 +296,17 @@ export class ObservableDocument<T> {
   }
 
   private changeSourceViaRef(ref?: DocumentReference) {
-    const newPath = ref ? ref.path : undefined;
-    // const oldPath = this._ref ? this._ref.path : undefined;
-
-    if (this.documentRef && ref && this.documentRef.isEqual(ref)) {
-      // this.logDebug("Ignore change source");
+    /**
+     * When setting the same ref multiple times we don't want to do anything.
+     */
+    if (this.documentRef && ref && this.documentRef.path === ref.path) {
       return;
     }
 
+    const newPath = ref ? ref.path : undefined;
+
     this.logDebug(`Change source via ref to ${ref ? ref.path : undefined}`);
+
     this.documentRef = ref;
     this.sourcePath = newPath;
     this.firedInitialFetch = false;
@@ -376,7 +351,7 @@ export class ObservableDocument<T> {
 
     const newRef =
       documentId && this.collectionRef
-        ? this.collectionRef.doc(documentId)
+        ? doc(this.collectionRef, documentId)
         : undefined;
 
     const newPath = newRef
@@ -453,7 +428,8 @@ export class ObservableDocument<T> {
 
       this.logDebug("Subscribe listeners");
 
-      this.onSnapshotUnsubscribeFn = this.documentRef.onSnapshot(
+      this.onSnapshotUnsubscribeFn = onSnapshot<T>(
+        this.ref,
         (snapshot) => this.handleSnapshot(snapshot),
         (err) => this.handleError(err),
       );

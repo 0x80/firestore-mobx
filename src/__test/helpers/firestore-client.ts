@@ -7,14 +7,14 @@
 
  */
 import admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
 
-export const adminApp = admin.initializeApp();
+export { FieldValue } from "firebase-admin/firestore";
 
-export const db = admin.firestore(adminApp);
+const firebaseApp = admin.initializeApp();
 
-export const FieldValue = admin.firestore.FieldValue;
+export const db = getFirestore(firebaseApp);
 
 db.settings({
-  timestampsInSnapshots: true,
   ignoreUndefinedProperties: true,
 });

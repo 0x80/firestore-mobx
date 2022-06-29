@@ -1,5 +1,5 @@
 import { autorun } from "mobx";
-import { ObservableDocument } from "../document";
+import { ObservableDocument, SourceType } from "../document";
 import { first, last } from "../utils";
 import {
   clearDataset,
@@ -47,7 +47,9 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
-    const document = new ObservableDocument(first(snapshot.docs)?.ref);
+    const document = new ObservableDocument(
+      first(snapshot.docs)?.ref as SourceType | undefined,
+    );
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
@@ -65,7 +67,9 @@ describe("Document", () => {
       .orderBy("count", "asc")
       .get();
 
-    const document = new ObservableDocument(db.collection(collectionName));
+    const document = new ObservableDocument(
+      db.collection(collectionName) as unknown as SourceType,
+    );
 
     expect(document.isLoading).toBe(false);
 
