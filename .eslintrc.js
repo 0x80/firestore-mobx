@@ -29,5 +29,6 @@ module.exports = {
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/camelcase": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
+    "mobx/exhaustive-make-observable": "off",
   },
 };
