@@ -1,5 +1,6 @@
 import {
   CollectionReference,
+  DocumentData,
   getDocs,
   onSnapshot,
   Query,

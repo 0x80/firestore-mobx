@@ -1,6 +1,5 @@
-import { db } from "./firestore-client";
-import { collection } from "@firebase/firestore";
-import { addDoc, deleteDoc, getDocs } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, getDocs } from "@firebase/firestore";
+import { db } from "./firebase-client";
 
 export interface TestDocumentA {
   title: string;

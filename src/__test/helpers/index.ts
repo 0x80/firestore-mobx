@@ -1,3 +1,3 @@
 export * from "./console";
 export * from "./dataset";
-export * from "./firestore-client";
+export * from "./firebase-client";

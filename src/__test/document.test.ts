@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, doc, getDocs, orderBy, query } from "@firebase/firestore";
 import { autorun } from "mobx";
 import { ObservableDocument, SourceType } from "../document";
 import { first, last } from "../utils";
