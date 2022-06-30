@@ -1,5 +1,6 @@
 import { addDoc, collection, deleteDoc, getDocs } from "@firebase/firestore";
-import { db } from "./firebase-client";
+import { signInAsUser } from "./firebase-sign-in";
+import { db } from "./firebase-web-client";
 
 export interface TestDocumentA {
   title: string;
@@ -33,6 +34,8 @@ export const collectionData: TestDocumentA[] = [
 ];
 
 export async function initializeDataset() {
+  await signInAsUser();
+
   const promisedOperations = collectionData.map((doc) => {
     console.log("Injecting", doc.title);
     return addDoc(collection(db, collectionName), doc);

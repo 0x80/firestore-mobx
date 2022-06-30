@@ -14,7 +14,7 @@ configure({
   enforceActions: "always",
 });
 
-describe("Collection", () => {
+describe("ObservableCollection", () => {
   beforeAll((done) => {
     initializeDataset().then(done);
   });

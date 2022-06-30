@@ -11,7 +11,7 @@ import {
   TestDocumentA,
 } from "./helpers";
 
-describe("Document", () => {
+describe("ObservableDocument", () => {
   /**
    * Check if transpiler is set up correctly. See
    * https://mobx.js.org/installation.html
