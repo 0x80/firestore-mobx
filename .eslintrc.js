@@ -11,13 +11,13 @@ module.exports = {
     es6: true,
     node: true,
   },
-  plugins: ["@typescript-eslint", "prettier"],
+  plugins: ["@typescript-eslint", "prettier", "mobx"],
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
+    "plugin:mobx/recommended",
     "prettier",
-    "prettier/@typescript-eslint",
   ],
   rules: {
     "no-console": ["error", { allow: ["error", "log"] }],

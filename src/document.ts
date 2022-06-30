@@ -42,8 +42,6 @@ function getPathFromCollectionRef(collectionRef?: CollectionReference) {
   return collectionRef ? `${collectionRef.path}/__no_document_id` : undefined;
 }
 
-const NO_DATA = "__no_data" as const;
-
 export type SourceType = DocumentReference | CollectionReference;
 
 export class ObservableDocument<T> {
