@@ -6,7 +6,7 @@ import {
   Query,
   queryEqual,
   QuerySnapshot,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import {
   action,
   computed,

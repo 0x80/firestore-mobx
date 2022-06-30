@@ -5,7 +5,7 @@ import {
   DocumentSnapshot,
   getDoc,
   onSnapshot,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import {
   action,
   computed,

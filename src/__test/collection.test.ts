@@ -1,4 +1,4 @@
-import { collection } from "@firebase/firestore";
+import { collection } from "firebase/firestore";
 import { autorun, configure } from "mobx";
 import { ObservableCollection } from "../collection";
 import {

@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, getDocs } from "@firebase/firestore";
+import { addDoc, collection, deleteDoc, getDocs } from "firebase/firestore";
 import { signInAsUser } from "./firebase-sign-in";
 import { db } from "./firebase-web-client";
 
