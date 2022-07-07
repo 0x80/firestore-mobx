@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/0x80/firestore-mobx#readme",
   "peerDependencies": {
-    "mobx": "^6.0.0"
+    "mobx": "^6.6.0"
   },
   "dependencies": {
     "firebase": "^9.8.4",

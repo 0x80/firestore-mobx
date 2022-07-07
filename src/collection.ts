@@ -80,7 +80,7 @@ export class ObservableCollection<T> {
       isLoading: observable,
       isEmpty: computed,
       hasDocuments: computed,
-      attachTo: action,
+      // attachTo: action,
       /**
        * attachTo being an action doesn't seem to be sufficient to prevent
        * strict mode errors

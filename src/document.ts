@@ -69,6 +69,19 @@ export class ObservableDocument<T> {
       this.isDebugEnabled = options.debug || false;
     }
 
+    /**
+     * By placing the Mobx initialization after calling changeLoadingState we
+     * prevent having to make that private method an action.
+     */
+    makeObservable(this, {
+      _data: observable,
+      isLoading: observable,
+      data: computed,
+      document: computed,
+      attachTo: action,
+      hasData: computed,
+    });
+
     // Don't think we need to call this here. Every change to source creates a
     // new one via changeReady()
     this.initializeReadyPromise();
@@ -90,19 +103,6 @@ export class ObservableDocument<T> {
        */
       this.changeLoadingState(true);
     }
-
-    /**
-     * By placing the Mobx initialization after calling changeLoadingState we
-     * prevent having to make that private method an action.
-     */
-    makeObservable(this, {
-      _data: observable,
-      isLoading: observable,
-      data: computed,
-      document: computed,
-      attachTo: action,
-      hasData: computed,
-    });
 
     onBecomeObserved(this, "_data", () => this.resumeUpdates());
     onBecomeUnobserved(this, "_data", () => this.suspendUpdates());
@@ -277,9 +277,9 @@ export class ObservableDocument<T> {
       if (snapshot.exists() && typeof this.onDataCallback === "function") {
         this.onDataCallback(snapshot.data());
       }
-
-      this.changeLoadingState(false);
     });
+
+    this.changeLoadingState(false);
   }
 
   /**
@@ -437,8 +437,10 @@ export class ObservableDocument<T> {
   }
 
   private changeLoadingState(isLoading: boolean) {
-    this.logDebug(`Change loading state: ${isLoading}`);
-    this.changeReady(!isLoading);
-    this.isLoading = isLoading;
+    runInAction(() => {
+      this.logDebug(`Change loading state: ${isLoading}`);
+      this.changeReady(!isLoading);
+      this.isLoading = isLoading;
+    });
   }
 }
