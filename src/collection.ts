@@ -15,6 +15,7 @@ import {
   onBecomeObserved,
   onBecomeUnobserved,
   runInAction,
+  toJS,
 } from "mobx";
 
 import { Document } from "./document";
@@ -41,7 +42,7 @@ function hasReference(ref?: CollectionReference): ref is CollectionReference {
 }
 
 export class ObservableCollection<T> {
-  documents: Document<T>[] = [];
+  _documents: Document<T>[] = [];
   isLoading = false;
 
   private debugId = createUniqueId();
@@ -76,11 +77,12 @@ export class ObservableCollection<T> {
     options?: Options,
   ) {
     makeObservable(this, {
-      documents: observable,
+      _documents: observable,
       isLoading: observable,
       isEmpty: computed,
       hasDocuments: computed,
       // attachTo: action,
+      documents: computed,
       /**
        * attachTo being an action doesn't seem to be sufficient to prevent
        * strict mode errors
@@ -121,11 +123,15 @@ export class ObservableCollection<T> {
   }
 
   get isEmpty(): boolean {
-    return this.documents.length === 0;
+    return this._documents.length === 0;
   }
 
   get hasDocuments(): boolean {
-    return this.documents.length > 0;
+    return this._documents.length > 0;
+  }
+
+  get documents() {
+    return toJS(this._documents);
   }
 
   private get isObserved(): boolean {
@@ -187,7 +193,7 @@ export class ObservableCollection<T> {
         this.updateListeners(false);
       }
 
-      this.documents = [];
+      this._documents = [];
       this.changeLoadingState(false);
     }
   }
@@ -219,14 +225,14 @@ export class ObservableCollection<T> {
 
       this.logDebug("Call ready resolve");
 
-      readyResolve(this.documents);
+      readyResolve(this._documents);
 
       /**
        * After the first promise has been resolved we want subsequent calls to
        * ready() to immediately return with the available data. Ready is only
        * meant to be used for initial data fetching
        */
-      this.readyPromise = Promise.resolve(this.documents);
+      this.readyPromise = Promise.resolve(this._documents);
     }
   }
 
@@ -329,7 +335,7 @@ export class ObservableCollection<T> {
     // });
 
     runInAction(() => {
-      this.documents = snapshot.docs.map(
+      this._documents = snapshot.docs.map(
         (doc) =>
           ({
             id: doc.id,
@@ -380,7 +386,7 @@ export class ObservableCollection<T> {
         this.updateListeners(false);
       }
 
-      this.documents = [];
+      this._documents = [];
       this.changeLoadingState(false);
     } else {
       if (this.isObserved) {
