@@ -16,20 +16,20 @@ describe("ObservableDocument", () => {
    * Check if transpiler is set up correctly. See
    * https://mobx.js.org/installation.html
    */
-  if (
-    !new (class {
-      x: any;
-    })().hasOwnProperty("x")
-  ) {
-    throw new Error("Transpiler is not configured correctly");
-  }
+  // if (
+  //   !new (class {
+  //     x: any;
+  //   })().hasOwnProperty("x")
+  // ) {
+  //   throw new Error("Transpiler is not configured correctly");
+  // }
 
   // Try to solve this https://github.com/facebook/jest/issues/7287
-  beforeAll((done) => {
-    initializeDataset().then(done);
+  beforeAll(() => {
+    return initializeDataset();
   });
-  afterAll((done) => {
-    clearDataset().then(done);
+  afterAll(() => {
+    return clearDataset();
   });
 
   it("Should initialize correctly", () => {
@@ -50,6 +50,27 @@ describe("ObservableDocument", () => {
     const document = new ObservableDocument(
       first(snapshot.docs)?.ref as SourceType | undefined,
     );
+
+    expect(document.isLoading).toBe(true);
+    expect(document.hasData).toBe(false);
+
+    await document.ready().then((doc) => console.log(doc));
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(true);
+    expect(document.data).toEqual(first(collectionData));
+  });
+
+  it("Can construct a document from doc path", async () => {
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
+
+    const docPath = first(snapshot.docs)?.ref.path;
+
+    expect(docPath).toBeDefined();
+
+    const document = new ObservableDocument(doc(db, docPath!));
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
