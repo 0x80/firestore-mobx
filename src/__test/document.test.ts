@@ -9,6 +9,7 @@ import {
   db,
   initializeDataset,
   TestDocumentA,
+  waitNumSeconds,
 } from "./helpers";
 
 describe("ObservableDocument", () => {
@@ -61,7 +62,7 @@ describe("ObservableDocument", () => {
     expect(document.data).toEqual(first(collectionData));
   });
 
-  it("Can construct a document from doc path", async () => {
+  it("Can take doc path and observe without calling ready", async () => {
     const snapshot = await getDocs(
       query(collection(db, collectionName), orderBy("count", "asc")),
     );
@@ -75,11 +76,17 @@ describe("ObservableDocument", () => {
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
 
-    await document.ready().then((doc) => console.log(doc));
+    const disposeListeners = autorun(() => {
+      console.log("isLoading", document.isLoading);
+    });
 
-    expect(document.isLoading).toBe(false);
+    await waitNumSeconds(2);
+
+    await expect(document.isLoading).toBe(false);
     expect(document.hasData).toBe(true);
     expect(document.data).toEqual(first(collectionData));
+
+    disposeListeners();
   });
 
   it("Can attach to a document id", async () => {

@@ -49,7 +49,7 @@ export class ObservableDocument<T> {
   isLoading = false;
 
   private debugId = createUniqueId();
-  private documentRef?: DocumentReference;
+  documentRef?: DocumentReference<T>;
   private collectionRef?: CollectionReference;
   private isDebugEnabled = false;
 
@@ -80,6 +80,7 @@ export class ObservableDocument<T> {
       document: computed,
       attachTo: action,
       hasData: computed,
+      documentRef: false,
     });
 
     // Don't think we need to call this here. Every change to source creates a
@@ -93,7 +94,7 @@ export class ObservableDocument<T> {
       this.sourcePath = source.path;
       this.logDebug("Constructor from collection reference");
     } else if (isDocumentReference(source)) {
-      this.documentRef = source;
+      this.documentRef = source as DocumentReference<T>;
       this.collectionRef = source.parent;
       this.sourcePath = source.path;
       this.logDebug("Constructor from document reference");
@@ -157,10 +158,10 @@ export class ObservableDocument<T> {
     return this.observedCount > 0;
   }
 
-  get ref() {
-    assert(this.documentRef, "No document ref available");
-    return this.documentRef as DocumentReference<T>;
-  }
+  // get ref() {
+  //   assert(this.documentRef, "No document ref available");
+  //   return this.documentRef as DocumentReference<T>;
+  // }
 
   get path(): string | undefined {
     return this.documentRef ? this.documentRef.path : undefined;
@@ -230,7 +231,7 @@ export class ObservableDocument<T> {
      * will resolve the ready promise just like the snapshot passed in from the
      * normal listener.
      */
-    getDoc(this.ref)
+    getDoc(this.documentRef)
       .then((snapshot) => this.handleSnapshot(snapshot))
       .catch((err) =>
         this.handleError(
@@ -305,7 +306,7 @@ export class ObservableDocument<T> {
 
     this.logDebug(`Change source via ref to ${ref ? ref.path : undefined}`);
 
-    this.documentRef = ref;
+    this.documentRef = ref as DocumentReference<T>;
     this.sourcePath = newPath;
     this.firedInitialFetch = false;
 
@@ -357,7 +358,7 @@ export class ObservableDocument<T> {
       : getPathFromCollectionRef(this.collectionRef);
 
     this.logDebug(`Change source via id to ${newPath}`);
-    this.documentRef = newRef;
+    this.documentRef = newRef as DocumentReference<T>;
     this.sourcePath = newPath;
     this.firedInitialFetch = false;
 
@@ -427,7 +428,7 @@ export class ObservableDocument<T> {
       this.logDebug("Subscribe listeners");
 
       this.onSnapshotUnsubscribeFn = onSnapshot<T>(
-        this.ref,
+        this.documentRef,
         (snapshot) => this.handleSnapshot(snapshot),
         (err) => this.handleError(err),
       );
