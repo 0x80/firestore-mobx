@@ -6,11 +6,11 @@ import {
   clearDataset,
   collectionData,
   collectionName,
-  db,
   initializeDataset,
   TestDocumentA,
-  waitNumSeconds,
-} from "./helpers";
+} from "./helpers/dataset";
+import { db } from "./helpers/firebase-web-client";
+import { waitNumSeconds } from "./helpers/wait-num-seconds";
 
 describe("ObservableDocument", () => {
   /**

@@ -5,22 +5,18 @@ import {
   clearDataset,
   collectionData,
   collectionName,
-  db,
   initializeDataset,
   TestDocumentA,
-} from "./helpers";
+} from "./helpers/dataset";
+import { db } from "./helpers/firebase-web-client";
 
 configure({
   enforceActions: "always",
 });
 
 describe("ObservableCollection", () => {
-  beforeAll((done) => {
-    initializeDataset().then(done);
-  });
-  afterAll((done) => {
-    clearDataset().then(done);
-  });
+  beforeAll(() => initializeDataset());
+  afterAll(() => clearDataset());
 
   it("Should create a collection", async () => {
     const oc = new ObservableCollection<TestDocumentA>(

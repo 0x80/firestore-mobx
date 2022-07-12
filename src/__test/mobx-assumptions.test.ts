@@ -1,4 +1,4 @@
-import { action, autorun, makeObservable, observable, reaction } from "mobx";
+import { action, autorun, makeObservable, observable } from "mobx";
 
 /**
  * Testing some general assumptions about Mobx that I feel unclear about after
