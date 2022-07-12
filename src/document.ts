@@ -17,6 +17,8 @@ import {
   toJS,
 } from "mobx";
 import { assert, createUniqueId } from "./utils";
+import { db } from "./__test/helpers/firebase-web-client";
+// import { db } from "./__test/helpers/firebase-web-client";
 
 interface Options {
   debug?: boolean;
@@ -264,9 +266,9 @@ export class ObservableDocument<T> {
     }
   }
 
-  private handleSnapshot(snapshot: DocumentSnapshot<T>) {
+  private handleSnapshot(snapshot: DocumentSnapshot) {
     runInAction(() => {
-      this._data = snapshot.exists() ? snapshot.data() : undefined;
+      this._data = snapshot.exists() ? (snapshot.data() as T) : undefined;
 
       /**
        * We only need to call back if data exists. This function needs to fire
@@ -276,7 +278,7 @@ export class ObservableDocument<T> {
        * to access the data via the callback.
        */
       if (snapshot.exists() && typeof this.onDataCallback === "function") {
-        this.onDataCallback(snapshot.data());
+        this.onDataCallback(snapshot.data() as T);
       }
     });
 
@@ -427,11 +429,20 @@ export class ObservableDocument<T> {
 
       this.logDebug("Subscribe listeners");
 
-      this.onSnapshotUnsubscribeFn = onSnapshot<T>(
-        this.documentRef,
-        (snapshot) => this.handleSnapshot(snapshot),
-        (err) => this.handleError(err),
-      );
+      try {
+        const ref = doc(db, this.documentRef.path);
+
+        console.log("++documentRef", this.documentRef);
+        console.log("++recreated ref", ref);
+
+        this.onSnapshotUnsubscribeFn = onSnapshot(
+          ref,
+          (snapshot) => this.handleSnapshot(snapshot),
+          (err) => this.handleError(err),
+        );
+      } catch (err: any) {
+        throw new Error(`Failed to subscribe with onSnapshot: ${err.message}`);
+      }
 
       this.listenerSourcePath = this.sourcePath;
     }
