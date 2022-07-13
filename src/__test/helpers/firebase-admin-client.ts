@@ -13,12 +13,6 @@ import { assert } from "../../utils";
 const firebaseAdminApp = admin.initializeApp();
 const auth = getAuth(firebaseAdminApp);
 
-// export const db = getFirestore(firebaseApp);
-
-// db.settings({
-//   ignoreUndefinedProperties: true,
-// });
-
 export async function getCustomUserToken(userId: string): Promise<string> {
   assert(
     userId,

@@ -1,9 +1,3 @@
-/**
- * This makes dom types available to firebase/app (required) but does not allow
- * then to be used else where in the app, because we are still in Node.js land
- * and not the DOM
- */
-/// <reference lib="dom" />
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import {

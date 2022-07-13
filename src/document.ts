@@ -16,9 +16,7 @@ import {
   runInAction,
   toJS,
 } from "mobx";
-import { assert, createUniqueId } from "./utils";
-import { db } from "./__test/helpers/firebase-web-client";
-// import { db } from "./__test/helpers/firebase-web-client";
+import { assert, createUniqueId, getErrorMessage } from "./utils";
 
 interface Options {
   debug?: boolean;
@@ -430,18 +428,21 @@ export class ObservableDocument<T> {
       this.logDebug("Subscribe listeners");
 
       try {
-        const ref = doc(db, this.documentRef.path);
+        // const ref = doc(db, this.documentRef.path);
 
-        console.log("++documentRef", this.documentRef);
-        console.log("++recreated ref", ref);
+        // console.log("++documentRef", this.documentRef);
+        // console.log("++recreated ref", ref);
 
         this.onSnapshotUnsubscribeFn = onSnapshot(
-          ref,
+          this.documentRef,
+          // ref,
           (snapshot) => this.handleSnapshot(snapshot),
           (err) => this.handleError(err),
         );
-      } catch (err: any) {
-        throw new Error(`Failed to subscribe with onSnapshot: ${err.message}`);
+      } catch (err) {
+        throw new Error(
+          `Failed to subscribe with onSnapshot: ${getErrorMessage(err)}`,
+        );
       }
 
       this.listenerSourcePath = this.sourcePath;
