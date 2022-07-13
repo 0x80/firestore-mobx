@@ -47,7 +47,7 @@
     "dotenv-cli": "^5.1.0",
     "eslint": "^8.18.0",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-mobx": "^0.0.8",
+    "eslint-plugin-mobx": "^0.0.9",
     "eslint-plugin-prettier": "^4.2.1",
     "firebase-admin": "^11.0.0",
     "firebase-tools": "^11.1.0",
