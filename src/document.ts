@@ -116,12 +116,8 @@ export class ObservableDocument<T> {
     return this.documentRef ? this.documentRef.id : "__no_id";
   }
 
-  attachTo(documentIdOrRef?: string | DocumentReference) {
-    if (!documentIdOrRef || typeof documentIdOrRef === "string") {
-      this.changeSourceViaId(documentIdOrRef);
-    } else {
-      this.changeSourceViaRef(documentIdOrRef);
-    }
+  attachTo(documentId?: string) {
+    this.changeSourceViaId(documentId);
 
     /**
      * Return this so we can chain ready()
@@ -157,11 +153,6 @@ export class ObservableDocument<T> {
   private get isObserved(): boolean {
     return this.observedCount > 0;
   }
-
-  // get ref() {
-  //   assert(this.documentRef, "No document ref available");
-  //   return this.documentRef as DocumentReference<T>;
-  // }
 
   get path(): string | undefined {
     return this.documentRef ? this.documentRef.path : undefined;
@@ -291,46 +282,6 @@ export class ObservableDocument<T> {
       this.onErrorCallback(err);
     } else {
       throw err;
-    }
-  }
-
-  private changeSourceViaRef(ref?: DocumentReference) {
-    /**
-     * When setting the same ref multiple times we don't want to do anything.
-     */
-    if (this.documentRef && ref && this.documentRef.path === ref.path) {
-      return;
-    }
-
-    const newPath = ref ? ref.path : undefined;
-
-    this.logDebug(`Change source via ref to ${ref ? ref.path : undefined}`);
-
-    this.documentRef = ref as DocumentReference<T>;
-    this.sourcePath = newPath;
-    this.firedInitialFetch = false;
-
-    const hasSource = !!ref;
-
-    this.initializeReadyPromise();
-
-    this._data = undefined;
-
-    // @TODO make D.R.Y.
-    if (!hasSource) {
-      if (this.isObserved) {
-        this.logDebug("Change document -> clear listeners");
-        this.updateListeners(false);
-      }
-
-      this.changeLoadingState(false);
-    } else {
-      if (this.isObserved) {
-        this.logDebug("Change document -> update listeners");
-        this.updateListeners(true);
-      }
-
-      this.changeLoadingState(true);
     }
   }
 
