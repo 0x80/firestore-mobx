@@ -17,15 +17,18 @@ export default {
     {
       file: pkg.main,
       format: "cjs",
+      sourcemap: true,
     },
     {
       file: pkg.module,
       format: "es",
+      sourcemap: true,
     },
   ],
   external: [
     ...Object.keys(pkg.dependencies || {}),
     ...Object.keys(pkg.peerDependencies || {}),
+    "firebase/firestore",
   ],
   plugins: [typescript()],
 };
