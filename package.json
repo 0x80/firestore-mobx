@@ -34,7 +34,7 @@
   "dependencies": {
     "@rollup/plugin-typescript": "^9.0.2",
     "firebase": "^9.12.1",
-    "nanoid": "^4.0.0"
+    "nanoid": "^3"
   },
   "devDependencies": {
     "@babel/core": "^7.19.6",
