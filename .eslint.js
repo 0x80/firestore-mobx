@@ -14,8 +14,8 @@ module.exports = {
   plugins: ["@typescript-eslint", "prettier", "mobx"],
   extends: [
     "eslint:recommended",
-    "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "plugin:mobx/recommended",
     "prettier",
   ],

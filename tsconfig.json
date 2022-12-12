@@ -7,10 +7,12 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "declaration": true,
+    "checkJs": true,
+    "allowJs": true,
     "outDir": "dist",
     "rootDir": "src",
     "sourceMap": true,
     "useDefineForClassFields": true
   },
-  "include": ["src"]
+  "include": ["./src/**/*"]
 }
