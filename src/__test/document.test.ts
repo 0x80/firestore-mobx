@@ -82,7 +82,7 @@ describe("ObservableDocument", () => {
 
     await waitNumSeconds(2);
 
-    await expect(document.isLoading).toBe(false);
+    expect(document.isLoading).toBe(false);
     expect(document.hasData).toBe(true);
     expect(document.data).toEqual(first(collectionData));
 

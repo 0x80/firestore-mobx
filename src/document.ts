@@ -1,6 +1,7 @@
 import {
   CollectionReference,
   doc,
+  DocumentData,
   DocumentReference,
   DocumentSnapshot,
   getDoc,
@@ -44,7 +45,7 @@ function getPathFromCollectionRef(collectionRef?: CollectionReference) {
 
 export type SourceType = DocumentReference | CollectionReference;
 
-export class ObservableDocument<T> {
+export class ObservableDocument<T extends DocumentData> {
   _data?: T;
   isLoading = false;
 
@@ -226,7 +227,7 @@ export class ObservableDocument<T> {
       .then((snapshot) => this.handleSnapshot(snapshot))
       .catch((err) =>
         this.handleError(
-          new Error(`Fetch initial data failed: ${err.message}`),
+          new Error(`Fetch initial data failed: ${getErrorMessage(err)}`),
         ),
       );
 

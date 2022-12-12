@@ -19,7 +19,7 @@ import {
 } from "mobx";
 
 import { Document } from "./document";
-import { assert, createUniqueId } from "./utils";
+import { assert, createUniqueId, getErrorMessage } from "./utils";
 
 interface Options {
   /**
@@ -41,7 +41,7 @@ function hasReference(ref?: CollectionReference): ref is CollectionReference {
   return !!ref;
 }
 
-export class ObservableCollection<T> {
+export class ObservableCollection<T extends DocumentData> {
   _documents: Document<T>[] = [];
   isLoading = false;
 
@@ -268,7 +268,7 @@ export class ObservableCollection<T> {
         .then((snapshot) => this.handleSnapshot(snapshot))
         .catch((err) =>
           this.handleError(
-            new Error(`Fetch initial data failed: ${err.message}`),
+            new Error(`Fetch initial data failed: ${getErrorMessage(err)}`),
           ),
         );
     } else {
@@ -276,7 +276,7 @@ export class ObservableCollection<T> {
         .then((snapshot) => this.handleSnapshot(snapshot))
         .catch((err) =>
           this.handleError(
-            new Error(`Fetch initial data failed: ${err.message}`),
+            new Error(`Fetch initial data failed: ${getErrorMessage(err)}`),
           ),
         );
     }
