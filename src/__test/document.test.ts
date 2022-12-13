@@ -94,9 +94,7 @@ describe("ObservableDocument", () => {
       query(collection(db, collectionName), orderBy("count", "asc")),
     );
 
-    const document = new ObservableDocument(
-      collection(db, collectionName) as unknown as SourceType,
-    );
+    const document = new ObservableDocument(collection(db, collectionName));
 
     expect(document.isLoading).toBe(false);
 

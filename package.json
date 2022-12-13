@@ -29,8 +29,8 @@
   },
   "homepage": "https://github.com/0x80/firestore-mobx#readme",
   "peerDependencies": {
-    "firebase": "^9.15.0",
-    "mobx": "^6.6.0"
+    "mobx": "^6.6.0",
+    "firebase": "^9.15.0"
   },
   "dependencies": {
     "nanoid": "^3"

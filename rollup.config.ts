@@ -1,13 +1,9 @@
-// import { nodeResolve } from "@rollup/plugin-node-resolve";
+import { nodeResolve } from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
 import pkg from "./package.json" assert { type: "json" };
 export default {
   input: "src/index.ts",
   output: [
-    // {
-    //   file: pkg.main,
-    //   format: "cjs",
-    // },
     {
       file: pkg.module,
       format: "es",
@@ -19,7 +15,7 @@ export default {
     ...Object.keys(pkg.peerDependencies || {}),
     "firebase/firestore",
   ],
-  plugins: [/* nodeResolve(), */ typescript()],
+  plugins: [nodeResolve(), typescript()],
 
   strictDeprecations: true,
 };
