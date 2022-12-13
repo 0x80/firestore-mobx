@@ -81,8 +81,8 @@ export class ObservableCollection<T extends DocumentData> {
       isLoading: observable,
       isEmpty: computed,
       hasDocuments: computed,
-      // attachTo: action,
       documents: computed,
+      attachTo: action,
       /**
        * attachTo being an action doesn't seem to be sufficient to prevent
        * strict mode errors
@@ -245,7 +245,6 @@ export class ObservableCollection<T extends DocumentData> {
 
   private fetchInitialData() {
     if (this.firedInitialFetch) {
-      // this.logDebug("Ignore fetch initial data");
       return;
     }
 
@@ -398,12 +397,12 @@ export class ObservableCollection<T extends DocumentData> {
     }
   }
 
-  private logDebug(message: string) {
+  private logDebug(...args: unknown[]) {
     if (this.isDebugEnabled) {
       if (this.collectionRef) {
-        console.log(`${this.debugId} (${this.collectionRef.path}) ${message} `);
+        console.log(`${this.debugId} (${this.collectionRef.path})`, ...args);
       } else {
-        console.log(`${this.debugId} ${message}`);
+        console.log(`${this.debugId}`, ...args);
       }
     }
   }
@@ -416,7 +415,6 @@ export class ObservableCollection<T extends DocumentData> {
       isListening &&
       this.sourceId === this.listenerSourcePath
     ) {
-      // this.logDebug("Ignore update listeners");
       return;
     }
 
@@ -455,10 +453,6 @@ export class ObservableCollection<T extends DocumentData> {
   }
 
   private changeLoadingState(isLoading: boolean) {
-    // const wasLoading = this.isLoading; if (wasLoading === isLoading) { //
-    // this.logDebug(`Ignore change loading state: ${isLoading}`); return;
-    // }
-
     this.logDebug(`Change loading state: ${isLoading}`);
     this.changeReady(!isLoading);
     runInAction(() => (this.isLoading = isLoading));
