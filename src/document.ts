@@ -84,8 +84,6 @@ export class ObservableDocument<T extends DocumentData> {
       documentRef: false,
     });
 
-    // Don't think we need to call this here. Every change to source creates a
-    // new one via changeReady()
     this.initializeReadyPromise();
 
     if (!source) {
@@ -121,7 +119,7 @@ export class ObservableDocument<T extends DocumentData> {
     this.changeSourceViaId(documentId);
 
     /**
-     * Return this so we can chain ready()
+     * Return "this" so we can chain ready() when needed.
      */
     return this;
   }
@@ -190,8 +188,6 @@ export class ObservableDocument<T extends DocumentData> {
       const readyResolve = this.readyResolveFn;
       assert(readyResolve, "Missing ready resolve function");
 
-      this.logDebug("Call ready resolve");
-
       readyResolve(this.hasData ? this.data : undefined);
 
       /**
@@ -257,8 +253,12 @@ export class ObservableDocument<T extends DocumentData> {
   }
 
   private handleSnapshot(snapshot: DocumentSnapshot) {
+    const data = snapshot.data() as T | undefined;
+
+    this.logDebug("Handle snapshot data:", data);
+
     runInAction(() => {
-      this._data = snapshot.exists() ? (snapshot.data() as T) : undefined;
+      this._data = data;
 
       /**
        * We only need to call back if data exists. This function needs to fire
@@ -267,12 +267,12 @@ export class ObservableDocument<T extends DocumentData> {
        * b.isLoading` would not work if a has isLoading false before b is able
        * to access the data via the callback.
        */
-      if (snapshot.exists() && typeof this.onDataCallback === "function") {
+      if (data && typeof this.onDataCallback === "function") {
         this.onDataCallback(snapshot.data() as T);
       }
-    });
 
-    this.changeLoadingState(false);
+      this.changeLoadingState(false);
+    });
   }
 
   /**
@@ -310,7 +310,7 @@ export class ObservableDocument<T extends DocumentData> {
       : getPathFromCollectionRef(this.collectionRef);
 
     this.logDebug(`Change source via id to ${newPath}`);
-    this.documentRef = newRef as DocumentReference<T>;
+    this.documentRef = newRef as DocumentReference<T> | undefined;
     this.sourcePath = newPath;
     this.firedInitialFetch = false;
 
@@ -320,34 +320,32 @@ export class ObservableDocument<T extends DocumentData> {
 
     this._data = undefined;
 
-    // @TODO make DRY
     if (!hasSource) {
+      this.changeLoadingState(false);
+
       if (this.isObserved) {
         this.logDebug("Change document -> clear listeners");
         this.updateListeners(false);
       }
-
-      this.changeLoadingState(false);
     } else {
+      this.changeLoadingState(true);
+
       if (this.isObserved) {
         this.logDebug("Change document -> update listeners");
         this.updateListeners(true);
       }
-
-      this.changeLoadingState(true);
     }
   }
 
-  private logDebug(message: string) {
+  private logDebug(...args: unknown[]) {
     if (this.isDebugEnabled) {
       if (!this.documentRef) {
         console.log(
-          `${this.debugId} (${getPathFromCollectionRef(
-            this.collectionRef,
-          )}) ${message}`,
+          `${this.debugId} (${getPathFromCollectionRef(this.collectionRef)})`,
+          ...args,
         );
       } else {
-        console.log(`${this.debugId} (${this.documentRef.path}) ${message}`);
+        console.log(`${this.debugId} (${this.documentRef.path})`, ...args);
       }
     }
   }
@@ -360,7 +358,6 @@ export class ObservableDocument<T extends DocumentData> {
       isListening &&
       this.sourcePath === this.listenerSourcePath
     ) {
-      // this.logDebug("Ignore update listeners");
       return;
     }
 
@@ -380,14 +377,8 @@ export class ObservableDocument<T extends DocumentData> {
       this.logDebug("Subscribe listeners");
 
       try {
-        // const ref = doc(db, this.documentRef.path);
-
-        // console.log("++documentRef", this.documentRef);
-        // console.log("++recreated ref", ref);
-
         this.onSnapshotUnsubscribeFn = onSnapshot(
           this.documentRef,
-          // ref,
           (snapshot) => this.handleSnapshot(snapshot),
           (err) => this.handleError(err),
         );
