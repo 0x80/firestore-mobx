@@ -21,7 +21,7 @@ observer pattern.
 In case of a React application this means that components only re-render when
 their specific data dependencies change.
 
-This library has been used in production use in one of my projects for several
+This library has been used in production in one of my projects for several
 years now so I'm fairly confident that it is solid.
 
 ## Features
