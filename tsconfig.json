@@ -1,16 +1,18 @@
 {
   "compilerOptions": {
-    "target": "es2018",
+    "target": "es2022",
     "module": "esnext",
     "lib": ["dom", "esnext"],
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
     "declaration": true,
+    "checkJs": true,
+    "allowJs": true,
     "outDir": "dist",
     "rootDir": "src",
     "sourceMap": true,
     "useDefineForClassFields": true
   },
-  "include": ["src"]
+  "include": ["./src/**/*"]
 }

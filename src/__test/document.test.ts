@@ -1,34 +1,36 @@
+import { collection, doc, getDocs, orderBy, query } from "firebase/firestore";
 import { autorun } from "mobx";
-import { ObservableDocument } from "../document";
+import { ObservableDocument, SourceType } from "../document";
 import { first, last } from "../utils";
 import {
   clearDataset,
   collectionData,
   collectionName,
-  db,
   initializeDataset,
   TestDocumentA,
-} from "./helpers";
+} from "./helpers/dataset";
+import { db } from "./helpers/firebase-web-client";
+import { waitNumSeconds } from "./helpers/wait-num-seconds";
 
-describe("Document", () => {
+describe("ObservableDocument", () => {
   /**
    * Check if transpiler is set up correctly. See
    * https://mobx.js.org/installation.html
    */
-  if (
-    !new (class {
-      x: any;
-    })().hasOwnProperty("x")
-  ) {
-    throw new Error("Transpiler is not configured correctly");
-  }
+  // if (
+  //   !new (class {
+  //     x: any;
+  //   })().hasOwnProperty("x")
+  // ) {
+  //   throw new Error("Transpiler is not configured correctly");
+  // }
 
   // Try to solve this https://github.com/facebook/jest/issues/7287
-  beforeAll((done) => {
-    initializeDataset().then(done);
+  beforeAll(() => {
+    return initializeDataset();
   });
-  afterAll((done) => {
-    clearDataset().then(done);
+  afterAll(() => {
+    return clearDataset();
   });
 
   it("Should initialize correctly", () => {
@@ -42,12 +44,13 @@ describe("Document", () => {
   });
 
   it("Can construct a document from ref", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
 
-    const document = new ObservableDocument(first(snapshot.docs)?.ref);
+    const document = new ObservableDocument(
+      first(snapshot.docs)?.ref as SourceType | undefined,
+    );
 
     expect(document.isLoading).toBe(true);
     expect(document.hasData).toBe(false);
@@ -59,13 +62,39 @@ describe("Document", () => {
     expect(document.data).toEqual(first(collectionData));
   });
 
-  it("Can attach to a document id", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
+  it("Can take doc path and observe without calling ready", async () => {
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
 
-    const document = new ObservableDocument(db.collection(collectionName));
+    const docPath = first(snapshot.docs)?.ref.path;
+
+    expect(docPath).toBeDefined();
+
+    const document = new ObservableDocument(doc(db, docPath!));
+
+    expect(document.isLoading).toBe(true);
+    expect(document.hasData).toBe(false);
+
+    const disposeListeners = autorun(() => {
+      console.log("isLoading", document.isLoading);
+    });
+
+    await waitNumSeconds(2);
+
+    expect(document.isLoading).toBe(false);
+    expect(document.hasData).toBe(true);
+    expect(document.data).toEqual(first(collectionData));
+
+    disposeListeners();
+  });
+
+  it("Can attach to a document id", async () => {
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
+
+    const document = new ObservableDocument(collection(db, collectionName));
 
     expect(document.isLoading).toBe(false);
 
@@ -81,12 +110,11 @@ describe("Document", () => {
   });
 
   it("Performs no operation when re-attaching to the same id", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
 
-    const document = new ObservableDocument(db.collection(collectionName));
+    const document = new ObservableDocument(collection(db, collectionName));
 
     expect(document.isLoading).toBe(false);
 
@@ -108,13 +136,12 @@ describe("Document", () => {
   });
 
   it("Should return data on ready without listeners", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
 
     const document = new ObservableDocument<TestDocumentA>(
-      db.collection(collectionName),
+      collection(db, collectionName),
       { debug: false },
     );
 
@@ -133,13 +160,11 @@ describe("Document", () => {
   });
 
   it("Should return data on ready with listeners", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
-
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
     const document = new ObservableDocument<TestDocumentA>(
-      db.collection(collectionName),
+      collection(db, collectionName),
       { debug: false },
     );
 
@@ -170,13 +195,12 @@ describe("Document", () => {
   });
 
   it("Should resolve ready after changing documents", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
 
     const document = new ObservableDocument<TestDocumentA>(
-      db.collection(collectionName),
+      collection(db, collectionName),
       { debug: false },
     );
 
@@ -223,7 +247,7 @@ describe("Document", () => {
 
   it("Returns undefined data on ready when not found", async () => {
     const document = new ObservableDocument<TestDocumentA>(
-      db.collection(collectionName),
+      collection(db, collectionName),
     );
 
     document.attachTo("__non_existing_id");
@@ -235,7 +259,7 @@ describe("Document", () => {
 
   it("Should have a fallback id", async () => {
     const document = new ObservableDocument<TestDocumentA>(
-      db.collection(collectionName),
+      collection(db, collectionName),
       { debug: false },
     );
 
@@ -257,13 +281,12 @@ describe("Document", () => {
   });
 
   it("Should return the same data on ready multiple times", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
 
     const document = new ObservableDocument<TestDocumentA>(
-      db.collection(collectionName).doc(first(snapshot.docs)?.id),
+      doc(db, collectionName, first(snapshot.docs)?.id || "__no_document"),
       { debug: false },
     );
 
@@ -274,13 +297,12 @@ describe("Document", () => {
   });
 
   it("Should fire onData before ready resolves", async () => {
-    const snapshot = await db
-      .collection(collectionName)
-      .orderBy("count", "asc")
-      .get();
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), orderBy("count", "asc")),
+    );
 
     const document = new ObservableDocument<TestDocumentA>(
-      db.collection(collectionName),
+      collection(db, collectionName),
     );
 
     {

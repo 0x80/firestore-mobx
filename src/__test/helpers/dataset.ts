@@ -1,4 +1,6 @@
-import { db } from "./firestore-client";
+import { addDoc, collection, deleteDoc, getDocs } from "firebase/firestore";
+import { signInAsUser } from "./firebase-sign-in";
+import { db } from "./firebase-web-client";
 
 export interface TestDocumentA {
   title: string;
@@ -6,7 +8,7 @@ export interface TestDocumentA {
   type: "even" | "odd";
 }
 
-export const collectionName: string = "someCollection";
+export const collectionName = "someCollection";
 
 export const collectionData: TestDocumentA[] = [
   {
@@ -32,20 +34,22 @@ export const collectionData: TestDocumentA[] = [
 ];
 
 export async function initializeDataset() {
+  await signInAsUser();
+
   const promisedOperations = collectionData.map((doc) => {
-    // console.log("Injecting", doc.title);
-    return db.collection(collectionName).add(doc);
+    console.log("Injecting", doc.title);
+    return addDoc(collection(db, collectionName), doc);
   });
 
   await Promise.all(promisedOperations);
 }
 
 export async function clearDataset() {
-  const snapshot = await db.collection(collectionName).get();
+  const snapshot = await getDocs(collection(db, collectionName));
 
   const promisedOperations = snapshot.docs.map((doc) => {
-    // console.log("Deleting", doc.ref.path);
-    return doc.ref.delete();
+    console.log("Deleting", doc.ref.path);
+    return deleteDoc(doc.ref);
   });
 
   await Promise.all(promisedOperations);

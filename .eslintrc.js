@@ -2,7 +2,7 @@ module.exports = {
   parser: "@typescript-eslint/parser",
   parserOptions: {
     project: "./tsconfig.json", // required for rules that need type information
-    ecmaVersion: 2018,
+    ecmaVersion: 2021,
     sourceType: "module",
   },
   env: {
@@ -11,13 +11,14 @@ module.exports = {
     es6: true,
     node: true,
   },
-  plugins: ["@typescript-eslint", "prettier"],
+  plugins: ["@typescript-eslint", "prettier", "mobx"],
   extends: [
     "eslint:recommended",
-    "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "plugin:mobx/recommended",
     "prettier",
-    "prettier/@typescript-eslint",
   ],
   rules: {
     "no-console": ["error", { allow: ["error", "log"] }],
@@ -29,5 +30,10 @@ module.exports = {
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/camelcase": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/restrict-template-expressions": [
+      "error",
+      { allowBoolean: true, allowNumber: true, allowNullish: true },
+    ],
+    "mobx/exhaustive-make-observable": "off",
   },
 };
