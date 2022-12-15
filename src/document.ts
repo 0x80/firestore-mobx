@@ -268,7 +268,7 @@ export class ObservableDocument<T extends DocumentData> {
        * to access the data via the callback.
        */
       if (data && typeof this.onDataCallback === "function") {
-        this.onDataCallback(snapshot.data() as T);
+        this.onDataCallback(data);
       }
 
       this.changeLoadingState(false);
