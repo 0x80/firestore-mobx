@@ -1,6 +1,6 @@
 {
   "name": "firestore-mobx",
-  "version": "2.0.0-18",
+  "version": "2.0.0",
   "description": "Observable Firestore documents and collections using MobX",
   "keywords": [
     "react-firestore-mobx",
