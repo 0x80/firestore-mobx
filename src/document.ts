@@ -282,6 +282,7 @@ export class ObservableDocument<T extends DocumentData> {
     if (typeof this.onErrorCallback === "function") {
       this.onErrorCallback(err);
     } else {
+      this.logError(err);
       throw err;
     }
   }
@@ -347,6 +348,20 @@ export class ObservableDocument<T extends DocumentData> {
       } else {
         console.log(`${this.debugId} (${this.documentRef.path})`, ...args);
       }
+    }
+  }
+
+  private logError(err: unknown) {
+    if (!this.documentRef) {
+      console.error(
+        `${this.debugId} (${getPathFromCollectionRef(
+          this.collectionRef,
+        )}): ${getErrorMessage(err)}`,
+      );
+    } else {
+      console.error(
+        `${this.debugId} (${this.documentRef.path}): ${getErrorMessage(err)}`,
+      );
     }
   }
 

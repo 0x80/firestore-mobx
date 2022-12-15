@@ -318,21 +318,6 @@ export class ObservableCollection<T extends DocumentData> {
       `handleSnapshot, ${Date.now()} docs.length: ${snapshot.docs.length}`,
     );
 
-    /**
-     * @TODO keep local cache of each document and only update data based on the
-     * docChanges
-     */
-    // snapshot.docChanges().forEach(function(change) { if (change.type ===
-    //   "added") { console.log("New: ", change.doc.data());
-    //   }
-    //   if (change.type === "modified") { console.log("Modified: ",
-    //     change.doc.data());
-    //   }
-    //   if (change.type === "removed") { console.log("Removed: ",
-    //     change.doc.data());
-    //   }
-    // });
-
     runInAction(() => {
       this._documents = snapshot.docs.map(
         (doc) =>
