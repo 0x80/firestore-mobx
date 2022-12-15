@@ -8,22 +8,56 @@
 # Firestore MobX
 
 This library was inspired by
-[Firestorter](https://github.com/IjzerenHein/firestorter). Read the [migration
-docs](/docs/migrate-from-firestorter.md) if you are interested in the motivation
-and differences.
+[Firestorter](https://github.com/IjzerenHein/firestorter), but resulted a
+complete rewrite aiming to focus only on those features I found essential.
+Firestore-mobx has a very minimal and un-opinionated API, and as a result is
+implemented with a fraction of the code (~670 vs ~1900 lines of code).
 
-You should be able to use this in any Javascript application including React and
-Node.js. This library has not yet been tested in the context of React Native.
+This library, using Mobx, makes it very easy to create stores containing
+observable Firestore documents and collections. The stores allow you to expose
+computed properties and all code using that data is updated efficiently via the
+observer pattern.
+
+In case of a React application this means that components only re-render when
+their specific data dependencies change.
+
+This library has been used in production use in one of my projects for several
+years now so I'm fairly confident that it is solid.
 
 ## Features
 
 - Minimal API surface
 - Written in Typescript, providing static type checks through generics
-- Minimal dependencies
+- Minimal dependencies. Mobx and the Firebase web SDK are peer dependencies.
+- Compatible with Firebase v9
+
+## Features dropped from Firestorter
+
+Here are some key differences with Firestorter:
+
+- There is no global context or initialization. You pass the Firestore
+  references directly to the observable constructors. They could come from
+  different database instances.
+- No support for React Native. It might be fairly straightforward, I haven't
+  looked into it.
+- No runtime data validation / schema support. Generics provide only static
+  typing of data.
+- Document data and collection documents are returned as plain JS objects. The
+  reactivity is limited to the properties of the observable containers like
+  `isLoading`.
+- Operations like add, update and delete are performed directly on the document
+  reference. So for these operations you are essentially using the native
+  Firestore API.
+- No support for aggregate collections. If you want to perform a query based on
+  the results of another query, you can simply wait for the first query to
+  return before mutating the second query with the obtained values.
+- There is only one fetch modes, "auto". Snapshot listeners are automatically
+  managed based on the observed count.
 
 ## Install
 
-`yarn add firestore-mobx` or `npm install firestore-mobx`
+`yarn add firestore-mobx mobx firebase` or `npm install firestore-mobx mobx
+firebase`
 
 ## Usage
 
@@ -88,9 +122,16 @@ if (books.empty) {
 books.docs.forEach((doc) => console.log(doc.data));
 ```
 
+## Example APP
+
+@TODO. I meantime you could have a look at the Firestorter examples, since the
+overall concept is the same.
+
 ## API
 
-See the [API docs](/docs/api.md).
+@TODO In the meantime have a look at the
+[document](./src/__test/document.test.ts) and
+[collection](./src/__test/collection.test.ts) tests.
 
 ## Testing
 
