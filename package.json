@@ -28,6 +28,7 @@
     "src",
     "dist"
   ],
+  "packageManager": "pnpm@10.12.1",
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
