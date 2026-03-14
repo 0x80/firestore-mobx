@@ -408,6 +408,7 @@ export class ObservableDocument<T extends DocumentData = DocumentData> {
       } catch (err) {
         throw new Error(
           `Failed to subscribe with onSnapshot: ${getErrorMessage(err)}`,
+          { cause: err },
         );
       }
 

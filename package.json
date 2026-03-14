@@ -3,22 +3,32 @@
   "version": "3.0.0",
   "description": "Observable Firestore documents and collections using MobX",
   "keywords": [
-    "react-firestore-mobx",
-    "react-firestore",
-    "react-firebase",
-    "firestorter",
-    "firestore-mobx",
     "firebase-mobx",
-    "firestore-react",
     "firestorable",
+    "firestore-collection",
+    "firestore-mobx",
+    "firestore-react",
+    "firestorter",
     "mobx-firestore",
-    "firestore-collection"
+    "react-firebase",
+    "react-firestore",
+    "react-firestore-mobx"
   ],
-  "type": "module",
+  "homepage": "https://github.com/0x80/firestore-mobx#readme",
+  "bugs": {
+    "url": "https://github.com/0x80/firestore-mobx/issues"
+  },
+  "license": "MIT",
+  "author": "Thijs Koerselman <thijs@vauxlab.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0x80/firestore-mobx.git"
+  },
   "files": [
     "src",
     "dist"
   ],
+  "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
@@ -34,20 +44,6 @@
     "check-types": "tsc --noEmit",
     "prepare": "pnpm check-types && pnpm build"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/0x80/firestore-mobx.git"
-  },
-  "author": "Thijs Koerselman <thijs@vauxlab.com>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/0x80/firestore-mobx/issues"
-  },
-  "homepage": "https://github.com/0x80/firestore-mobx#readme",
-  "peerDependencies": {
-    "firebase": ">=10",
-    "mobx": ">=6"
-  },
   "devDependencies": {
     "firebase": "^11.6.0",
     "mobx": "^6.15.0",
@@ -56,5 +52,9 @@
     "tsdown": "^0.20.3",
     "typescript": "^5.8.0",
     "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "firebase": ">=10",
+    "mobx": ">=6"
   }
 }
