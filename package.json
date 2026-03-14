@@ -14,7 +14,7 @@
     "react-firestore",
     "react-firestore-mobx"
   ],
-  "homepage": "https://github.com/0x80/firestore-mobx#readme",
+  "homepage": "https://firestore-mobx.codecompose.dev",
   "bugs": {
     "url": "https://github.com/0x80/firestore-mobx/issues"
   },
@@ -42,7 +42,10 @@
     "format": "oxfmt",
     "check-format": "oxfmt --check",
     "check-types": "tsc --noEmit",
-    "prepare": "pnpm check-types && pnpm build"
+    "prepare": "pnpm check-types && pnpm build",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
     "firebase": "^11.6.0",
@@ -51,6 +54,7 @@
     "oxlint": "^1.48.0",
     "tsdown": "^0.20.3",
     "typescript": "^5.8.0",
+    "vitepress": "^1.6.3",
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
