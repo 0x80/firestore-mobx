@@ -1,12 +1,10 @@
-import {
+import type {
   CollectionReference,
-  doc,
   DocumentData,
   DocumentReference,
   DocumentSnapshot,
-  getDoc,
-  onSnapshot,
 } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import {
   action,
   computed,
@@ -17,26 +15,31 @@ import {
   runInAction,
   toJS,
 } from "mobx";
-import { assert, createUniqueId, getErrorMessage } from "./utils";
+import { assert, createId, getErrorMessage } from "./utils";
 
-interface Options {
+type Options = {
   debug?: boolean;
-}
+  /**
+   * When true, defers loading until the document is observed. By default (lazy:
+   * false), the document stays up-to-date in the background.
+   */
+  lazy?: boolean;
+};
 
-export interface Document<T> {
+export type Document<T> = {
   id: string;
   data: T;
   ref: DocumentReference;
-}
+};
 
 function isDocumentReference(source: SourceType): source is DocumentReference {
-  return (source as DocumentReference).type === "document";
+  return source.type === "document";
 }
 
 function isCollectionReference(
   source: SourceType,
 ): source is CollectionReference {
-  return (source as CollectionReference).type === "collection";
+  return source.type === "collection";
 }
 
 function getPathFromCollectionRef(collectionRef?: CollectionReference) {
@@ -45,14 +48,15 @@ function getPathFromCollectionRef(collectionRef?: CollectionReference) {
 
 export type SourceType = DocumentReference | CollectionReference;
 
-export class ObservableDocument<T extends DocumentData> {
+export class ObservableDocument<T extends DocumentData = DocumentData> {
   _data?: T;
   isLoading = false;
 
-  private debugId = createUniqueId();
+  private debugId = createId();
   documentRef?: DocumentReference<T>;
-  private collectionRef?: CollectionReference;
+  private collectionRef?: CollectionReference<T>;
   private isDebugEnabled = false;
+  private isLazy = false;
 
   private readyPromise?: Promise<T | undefined>;
   private readyResolveFn?: (data?: T) => void;
@@ -67,7 +71,8 @@ export class ObservableDocument<T extends DocumentData> {
 
   constructor(source?: SourceType, options?: Options) {
     if (options) {
-      this.isDebugEnabled = options.debug || false;
+      this.isDebugEnabled = options.debug ?? false;
+      this.isLazy = options.lazy ?? false;
     }
 
     /**
@@ -80,7 +85,6 @@ export class ObservableDocument<T extends DocumentData> {
       data: computed,
       document: computed,
       attachTo: action,
-      hasData: computed,
       documentRef: false,
     });
 
@@ -89,12 +93,12 @@ export class ObservableDocument<T extends DocumentData> {
     if (!source) {
       // do nothing?
     } else if (isCollectionReference(source)) {
-      this.collectionRef = source;
+      this.collectionRef = source as CollectionReference<T>;
       this.sourcePath = source.path;
       this.logDebug("Constructor from collection reference");
     } else if (isDocumentReference(source)) {
       this.documentRef = source as DocumentReference<T>;
-      this.collectionRef = source.parent;
+      this.collectionRef = source.parent as CollectionReference<T>;
       this.sourcePath = source.path;
       this.logDebug("Constructor from document reference");
       /**
@@ -109,6 +113,12 @@ export class ObservableDocument<T extends DocumentData> {
 
     onBecomeObserved(this, "isLoading", () => this.resumeUpdates());
     onBecomeUnobserved(this, "isLoading", () => this.suspendUpdates());
+
+    // By default, start loading immediately (unless lazy mode is enabled)
+    if (!this.isLazy && source) {
+      this.logDebug("Starting background loading (default behavior)");
+      this.updateListeners(true);
+    }
   }
 
   get id(): string {
@@ -118,15 +128,12 @@ export class ObservableDocument<T extends DocumentData> {
   attachTo(documentId?: string) {
     this.changeSourceViaId(documentId);
 
-    /**
-     * Return "this" so we can chain ready() when needed.
-     */
+    /** Return "this" so we can chain ready() when needed. */
     return this;
   }
 
-  get data(): T {
-    assert(this._data, "No data available");
-    return toJS(this._data);
+  get data(): T | undefined {
+    return this._data ? toJS(this._data) : undefined;
   }
 
   get document(): Document<T> {
@@ -177,10 +184,6 @@ export class ObservableDocument<T extends DocumentData> {
     return this.readyPromise;
   }
 
-  get hasData(): boolean {
-    return typeof this._data !== "undefined";
-  }
-
   private changeReady(isReady: boolean) {
     this.logDebug(`Change ready ${isReady}`);
 
@@ -188,14 +191,14 @@ export class ObservableDocument<T extends DocumentData> {
       const readyResolve = this.readyResolveFn;
       assert(readyResolve, "Missing ready resolve function");
 
-      readyResolve(this.hasData ? this.data : undefined);
+      readyResolve(this.data);
 
       /**
        * After the first promise has been resolved we want subsequent calls to
        * ready() to immediately return with the available data. Ready is only
        * meant to be used for initial data fetching
        */
-      this.readyPromise = Promise.resolve(this.hasData ? this.data : undefined);
+      this.readyPromise = Promise.resolve(this.data);
     }
   }
 
@@ -237,7 +240,10 @@ export class ObservableDocument<T extends DocumentData> {
 
     if (this.observedCount === 1) {
       this.logDebug("Becoming observed");
-      this.updateListeners(true);
+      // Don't set up listeners if they're already active from default background loading
+      if (!this.onSnapshotUnsubscribeFn) {
+        this.updateListeners(true);
+      }
     }
   }
 
@@ -248,7 +254,11 @@ export class ObservableDocument<T extends DocumentData> {
 
     if (this.observedCount === 0) {
       this.logDebug("Becoming un-observed");
-      this.updateListeners(false);
+      // Only tear down listeners if lazy loading is enabled
+      // By default, we keep listeners active in the background
+      if (this.isLazy) {
+        this.updateListeners(false);
+      }
     }
   }
 
@@ -275,9 +285,7 @@ export class ObservableDocument<T extends DocumentData> {
     });
   }
 
-  /**
-   * If there is an error handler callback we use that, otherwise we throw.
-   */
+  /** If there is an error handler callback we use that, otherwise we throw. */
   private handleError(err: Error) {
     if (typeof this.onErrorCallback === "function") {
       this.onErrorCallback(err);
@@ -311,7 +319,7 @@ export class ObservableDocument<T extends DocumentData> {
       : getPathFromCollectionRef(this.collectionRef);
 
     this.logDebug(`Change source via id to ${newPath}`);
-    this.documentRef = newRef as DocumentReference<T> | undefined;
+    this.documentRef = newRef;
     this.sourcePath = newPath;
     this.firedInitialFetch = false;
 
@@ -324,14 +332,14 @@ export class ObservableDocument<T extends DocumentData> {
     if (!hasSource) {
       this.changeLoadingState(false);
 
-      if (this.isObserved) {
+      if (this.isObserved || !this.isLazy) {
         this.logDebug("Change document -> clear listeners");
         this.updateListeners(false);
       }
     } else {
       this.changeLoadingState(true);
 
-      if (this.isObserved) {
+      if (this.isObserved || !this.isLazy) {
         this.logDebug("Change document -> update listeners");
         this.updateListeners(true);
       }
@@ -379,7 +387,7 @@ export class ObservableDocument<T extends DocumentData> {
     if (isListening) {
       this.logDebug("Unsubscribe listeners");
 
-      this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
+      this.onSnapshotUnsubscribeFn?.();
       this.onSnapshotUnsubscribeFn = undefined;
       this.listenerSourcePath = undefined;
     }
@@ -414,4 +422,20 @@ export class ObservableDocument<T extends DocumentData> {
       this.isLoading = isLoading;
     });
   }
+}
+
+/**
+ * Create an ObservableDocument with automatic type inference from the
+ * reference. This aligns with the typed-firestore pattern where types flow from
+ * refs.
+ *
+ * @example
+ *   const doc = createObservableDocument(refs.taxonomies);
+ *   const doc2 = createObservableDocument(refs.derived.currentReviewStructures);
+ */
+export function createObservableDocument<T extends DocumentData>(
+  ref: DocumentReference<T> | CollectionReference<T>,
+  options?: Options,
+): ObservableDocument<T> {
+  return new ObservableDocument<T>(ref as SourceType, options);
 }
