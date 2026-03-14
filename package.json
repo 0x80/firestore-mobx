@@ -28,7 +28,6 @@
     "src",
     "dist"
   ],
-  "packageManager": "pnpm@10.12.1",
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
@@ -62,5 +61,6 @@
   "peerDependencies": {
     "firebase": ">=10",
     "mobx": ">=6"
-  }
+  },
+  "packageManager": "pnpm@10.12.1"
 }
