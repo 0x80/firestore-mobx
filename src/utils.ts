@@ -1,30 +1,16 @@
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export function assert(condition: any, msg: string): asserts condition {
+export function assert(condition: unknown, msg: string): asserts condition {
   if (!condition) {
     throw new Error(msg);
   }
 }
 
-import { customAlphabet } from "nanoid";
-
-const ID_SIZE = 8;
-const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
-const nanoid = customAlphabet(alphabet, ID_SIZE);
-
-export function createUniqueId() {
-  return nanoid();
-}
-
-export function first<T>(array: T[]): T | undefined {
-  return array[0];
-}
-
-export function last<T>(array: T[]): T | undefined {
-  return array[array.length - 1];
+export function createId(): string {
+  return crypto.randomUUID().slice(0, 8);
 }
 
 /**
- * Idea taken from https://kentcdodds.com/blog/get-a-catch-block-error-message-with-typescript?ck_subscriber_id=553154891
+ * Idea taken from
+ * https://kentcdodds.com/blog/get-a-catch-block-error-message-with-typescript?ck_subscriber_id=553154891
  */
 
 type ErrorWithMessage = {
@@ -42,8 +28,8 @@ function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
     return new Error(JSON.stringify(maybeError));
   } catch {
     /**
-     * fallback in case there’s an error stringifying the maybeError
-     * like with circular references for example.
+     * Fallback in case there's an error stringifying the maybeError like with
+     * circular references for example.
      */
     return new Error(String(maybeError));
   }

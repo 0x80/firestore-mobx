@@ -1,9 +1,8 @@
+node_modules
+dist
 *.log
-node_modules/
-dist/
-build/
-.env
-.env.*
-.next
-.rpt2_cache
-credentials/
+.DS_Store
+tsconfig.tsbuildinfo
+
+# Claude Code local settings
+.claude/settings.local.json

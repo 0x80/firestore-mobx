@@ -1,12 +1,10 @@
-import {
+import type {
   CollectionReference,
   DocumentData,
-  getDocs,
-  onSnapshot,
   Query,
-  queryEqual,
   QuerySnapshot,
 } from "firebase/firestore";
+import { getDocs, onSnapshot, queryEqual } from "firebase/firestore";
 import {
   action,
   computed,
@@ -18,20 +16,26 @@ import {
   toJS,
 } from "mobx";
 
-import { Document } from "./document";
-import { assert, createUniqueId, getErrorMessage } from "./utils";
+import type { Document } from "./document";
+import { assert, createId, getErrorMessage } from "./utils";
 
-interface Options {
+type Options = {
   /**
    * For more info read
    * https://firebase.google.com/docs/firestore/query-data/listen
    */
   ignoreInitialSnapshot?: boolean;
   debug?: boolean;
-}
+  /**
+   * When true, defers loading until the collection is observed. By default
+   * (lazy: false), the collection stays up-to-date in the background.
+   */
+  lazy?: boolean;
+};
 
 const optionDefaults: Options = {
-  ignoreInitialSnapshot: false, // @TODO test before making default true
+  /** @todo Test before making default true */
+  ignoreInitialSnapshot: false,
   debug: false,
 };
 
@@ -41,30 +45,31 @@ function hasReference(ref?: CollectionReference): ref is CollectionReference {
   return !!ref;
 }
 
-export class ObservableCollection<T extends DocumentData> {
+export class ObservableCollection<T extends DocumentData = DocumentData> {
   _documents: Document<T>[] = [];
   isLoading = false;
 
-  private debugId = createUniqueId();
-  private collectionRef?: CollectionReference;
+  private debugId = createId();
+  private collectionRef?: CollectionReference<T>;
   private _query?: Query;
   private queryCreatorFn?: QueryCreatorFn;
   private isDebugEnabled = false;
+  private isLazy = false;
   private readyPromise?: Promise<Document<T>[]>;
   private readyResolveFn?: (docs: Document<T>[]) => void;
   private onSnapshotUnsubscribeFn?: () => void;
   private options: Options = optionDefaults;
   private observedCount = 0;
   private firedInitialFetch = false;
-  private sourceId = createUniqueId();
+  private sourceId = createId();
   private listenerSourcePath?: string;
 
   onError?: (err: Error) => void;
 
   /**
-   * @TODO maybe record a string of the query + reference, so we can figure out
-   * if the current listeners belong to that combination or we need to update
-   * them
+   * @todo Maybe record a string of the query + reference, so we can figure out
+   *   if the current listeners belong to that combination or we need to update
+   *   them
    */
   constructor(
     /**
@@ -72,7 +77,7 @@ export class ObservableCollection<T extends DocumentData> {
      * path in advance. Pass undefined if you want to supply the other
      * parameters
      */
-    ref?: CollectionReference<DocumentData>,
+    ref?: CollectionReference<T>,
     queryCreatorFn?: QueryCreatorFn,
     options?: Options,
   ) {
@@ -84,7 +89,7 @@ export class ObservableCollection<T extends DocumentData> {
       documents: computed,
       attachTo: action,
       /**
-       * attachTo being an action doesn't seem to be sufficient to prevent
+       * AttachTo being an action doesn't seem to be sufficient to prevent
        * strict mode errors
        */
       _changeSource: action,
@@ -103,12 +108,13 @@ export class ObservableCollection<T extends DocumentData> {
     if (queryCreatorFn) {
       this.queryCreatorFn = queryCreatorFn;
       this._query = hasReference(ref) ? queryCreatorFn(ref) : undefined;
-      this.sourceId = createUniqueId();
+      this.sourceId = createId();
     }
 
     if (options) {
       this.options = { ...optionDefaults, ...options };
-      this.isDebugEnabled = options.debug || false;
+      this.isDebugEnabled = options.debug ?? false;
+      this.isLazy = options.lazy ?? false;
     }
 
     onBecomeObserved(this, "documents", () => this.resumeUpdates());
@@ -119,6 +125,12 @@ export class ObservableCollection<T extends DocumentData> {
 
     if (hasReference(ref)) {
       this.changeLoadingState(true);
+    }
+
+    // By default, start loading immediately (unless lazy mode is enabled)
+    if (!this.isLazy && ref) {
+      this.logDebug("Starting background loading (default behavior)");
+      this.updateListeners(true);
     }
   }
 
@@ -144,18 +156,16 @@ export class ObservableCollection<T extends DocumentData> {
 
   get ref() {
     assert(this.collectionRef, "No collection ref available");
-    return this.collectionRef as CollectionReference<T>;
+    return this.collectionRef;
   }
 
-  attachTo(newRef?: CollectionReference) {
+  attachTo(newRef?: CollectionReference<T>) {
     this._changeSource(newRef);
-    /**
-     * Return this so we can chain ready()
-     */
+    /** Return this so we can chain ready() */
     return this;
   }
 
-  _changeSource(newRef?: CollectionReference) {
+  _changeSource(newRef?: CollectionReference<T>) {
     if (!this.collectionRef && !newRef) {
       return;
     }
@@ -171,6 +181,7 @@ export class ObservableCollection<T extends DocumentData> {
     this.logDebug(`Change source to ${newRef ? newRef.path : undefined}`);
     this.firedInitialFetch = false;
     this.collectionRef = newRef;
+    this.sourceId = createId();
 
     this.initializeReadyPromise();
 
@@ -178,17 +189,16 @@ export class ObservableCollection<T extends DocumentData> {
       if (this.queryCreatorFn) {
         this.logDebug("Update query using new ref source");
         this._query = this.queryCreatorFn(newRef);
-        this.sourceId = createUniqueId();
       }
 
-      if (this.isObserved) {
+      if (this.isObserved || !this.isLazy) {
         this.logDebug("Change collection -> update listeners");
         this.updateListeners(true);
       }
 
       this.changeLoadingState(true);
     } else {
-      if (this.isObserved) {
+      if (this.isObserved || !this.isLazy) {
         this.logDebug("Change collection -> clear listeners");
         this.updateListeners(false);
       }
@@ -290,7 +300,10 @@ export class ObservableCollection<T extends DocumentData> {
 
     if (this.observedCount === 1) {
       this.logDebug("Becoming observed");
-      this.updateListeners(true);
+      // Don't set up listeners if they're already active from default background loading
+      if (!this.onSnapshotUnsubscribeFn) {
+        this.updateListeners(true);
+      }
     }
   }
 
@@ -301,7 +314,11 @@ export class ObservableCollection<T extends DocumentData> {
 
     if (this.observedCount === 0) {
       this.logDebug("Becoming un-observed");
-      this.updateListeners(false);
+      // Only tear down listeners if lazy loading is enabled
+      // By default, we keep listeners active in the background
+      if (this.isLazy) {
+        this.updateListeners(false);
+      }
     }
   }
 
@@ -325,7 +342,7 @@ export class ObservableCollection<T extends DocumentData> {
             id: doc.id,
             ref: doc.ref,
             data: doc.data() as T,
-          } as Document<T>),
+          }) as Document<T>,
       );
       this.changeLoadingState(false);
     });
@@ -362,10 +379,10 @@ export class ObservableCollection<T extends DocumentData> {
 
     const hasSource = !!this.collectionRef || !!newQuery;
     this._query = newQuery;
-    this.sourceId = createUniqueId();
+    this.sourceId = createId();
 
     if (!hasSource) {
-      if (this.isObserved) {
+      if (this.isObserved || !this.isLazy) {
         this.logDebug("Set query -> clear listeners");
         this.updateListeners(false);
       }
@@ -373,7 +390,7 @@ export class ObservableCollection<T extends DocumentData> {
       this._documents = [];
       this.changeLoadingState(false);
     } else {
-      if (this.isObserved) {
+      if (this.isObserved || !this.isLazy) {
         this.logDebug("Set query -> update listeners");
         this.updateListeners(true);
       }
@@ -387,7 +404,7 @@ export class ObservableCollection<T extends DocumentData> {
       if (this.collectionRef) {
         console.log(`${this.debugId} (${this.collectionRef.path})`, ...args);
       } else {
-        console.log(`${this.debugId}`, ...args);
+        console.log(this.debugId, ...args);
       }
     }
   }
@@ -405,8 +422,10 @@ export class ObservableCollection<T extends DocumentData> {
 
     if (isListening) {
       this.logDebug("Unsubscribe listeners");
-      this.onSnapshotUnsubscribeFn && this.onSnapshotUnsubscribeFn();
+
+      this.onSnapshotUnsubscribeFn?.();
       this.onSnapshotUnsubscribeFn = undefined;
+
       this.listenerSourcePath = undefined;
     }
 
@@ -458,4 +477,28 @@ export function executeFromCount<T>(fn: Fn<T>, count: number) {
       return true;
     }
   };
+}
+
+/**
+ * Create an ObservableCollection with automatic type inference from the
+ * reference. This aligns with the typed-firestore pattern where types flow from
+ * refs.
+ *
+ * @example
+ *   const collection = createObservableCollection(refs.taxonomies);
+ *
+ *   // When ref is undefined, provide the type explicitly
+ *   const collection2 = createObservableCollection<Assessment>(
+ *     undefined,
+ *     queryFn,
+ *   );
+ *   // Later attach the ref when it becomes available
+ *   collection2.attachTo(refs.reviewAssessments(reviewId));
+ */
+export function createObservableCollection<T extends DocumentData>(
+  ref?: CollectionReference<T>,
+  queryCreatorFn?: QueryCreatorFn,
+  options?: Options,
+): ObservableCollection<T> {
+  return new ObservableCollection<T>(ref, queryCreatorFn, options);
 }

@@ -2,17 +2,18 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "esnext",
-    "lib": ["dom", "esnext"],
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom"],
     "strict": true,
-    "moduleResolution": "node",
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "declaration": true,
-    "checkJs": true,
-    "allowJs": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "outDir": "dist",
     "rootDir": "src",
-    "sourceMap": true,
     "useDefineForClassFields": true
   },
-  "include": ["./src/**/*"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
