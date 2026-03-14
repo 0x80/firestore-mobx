@@ -31,15 +31,19 @@ type Author = {
   email: string;
 };
 
-const author = createObservableDocument<Author>(
-  doc(firestore, "authors", authorId),
-);
+const authorRef = doc(
+  firestore,
+  "authors",
+  authorId,
+) as DocumentReference<Author>;
+
+const author = createObservableDocument(authorRef);
 
 // Wait for the data to load
 await author.ready();
 
-// Access the typed data
-console.log(author.data); // Author | undefined
+// Access the typed data — inferred as Author | undefined
+console.log(author.data);
 ```
 
 ### Observable Collection
@@ -53,17 +57,62 @@ type Book = {
   publishedAt: Date;
 };
 
-const books = createObservableCollection<Book>(
-  collection(firestore, "authors", authorId, "books"),
-  (ref) => query(ref, orderBy("title", "asc")),
+const booksRef = collection(
+  firestore,
+  "authors",
+  authorId,
+  "books",
+) as CollectionReference<Book>;
+
+const books = createObservableCollection(booksRef, (ref) =>
+  query(ref, orderBy("title", "asc")),
 );
 
 await books.ready();
 
+// Each doc is typed as Document<Book> with { id, data, ref }
 books.documents.forEach((doc) => {
-  console.log(doc.id, doc.data);
+  console.log(doc.id, doc.data.title);
 });
 ```
+
+### Typed Refs
+
+In the examples above, we cast each reference inline, but in practice you define your typed references once in a central place. This way the types flow through automatically:
+
+```ts
+// refs.ts
+import { collection, doc } from "firebase/firestore";
+
+export const refs = {
+  authors: collection(firestore, "authors") as CollectionReference<Author>,
+  books: (authorId: string) =>
+    collection(
+      firestore,
+      "authors",
+      authorId,
+      "books",
+    ) as CollectionReference<Book>,
+};
+```
+
+Now the factory functions infer the data type from the ref — no manual generics needed:
+
+```ts
+import {
+  createObservableDocument,
+  createObservableCollection,
+} from "firestore-mobx";
+import { refs } from "./refs";
+
+// Type is inferred as ObservableDocument<Author>
+const author = createObservableDocument(doc(refs.authors, authorId));
+
+// Type is inferred as ObservableCollection<Book>
+const books = createObservableCollection(refs.books(authorId));
+```
+
+For a more comprehensive approach to typed refs, see [Typed Firestore](https://typed-firestore.codecompose.dev).
 
 ### Using with React
 

@@ -16,6 +16,8 @@ The `ref` parameter is optional because for sub-collections you might not know t
 
 The `queryCreatorFn` receives the collection reference and should return a Firestore `Query`. It is re-applied automatically when the collection reference changes via `attachTo()`.
 
+When the reference is typed (e.g. `CollectionReference<Book>`), the generic `T` is inferred automatically — you don't need to specify it.
+
 ### Options
 
 | Option                  | Type      | Default | Description                                                                        |
@@ -53,10 +55,11 @@ This is commonly used for sub-collections where the path depends on a parent doc
 
 ```ts
 class AuthorStore {
+  // No ref yet — type is inferred when attachTo is called with a typed ref
   private _books = createObservableCollection<Book>(undefined);
 
   loadAuthor(authorId: string) {
-    this._books.attachTo(collection(firestore, "authors", authorId, "books"));
+    this._books.attachTo(refs.books(authorId));
   }
 
   get books() {
@@ -85,10 +88,16 @@ books.onError = (err) => console.error(err);
 
 ## Factory Function
 
+The `createObservableCollection` factory function infers the generic type `T` from the reference you pass in. This means that when your references carry type information, you never need to specify generics manually:
+
 ```ts
 import { createObservableCollection } from "firestore-mobx";
 
-const collection = createObservableCollection(typedCollectionRef);
+// ref is CollectionReference<Book> → result is ObservableCollection<Book>
+const books = createObservableCollection(refs.books(authorId));
+
+// ref is CollectionReference<Author> → result is ObservableCollection<Author>
+const authors = createObservableCollection(refs.authors);
 ```
 
-`createObservableCollection` infers the type `T` from the reference, which is useful when working with [typed-firestore](https://typed-firestore.codecompose.dev) references where types flow from the ref definitions.
+See [Typed Refs](/getting-started#typed-refs) for how to set up your references, or use [Typed Firestore](https://typed-firestore.codecompose.dev) for a more comprehensive approach.

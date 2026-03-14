@@ -10,6 +10,8 @@ new ObservableDocument<T>(source?: DocumentReference | CollectionReference, opti
 
 The `source` parameter accepts either a `DocumentReference` (for a specific document) or a `CollectionReference` (when the document ID is not yet known). If a `CollectionReference` is passed, use `attachTo()` to set the document ID later.
 
+When the reference is typed (e.g. `DocumentReference<Author>`), the generic `T` is inferred automatically — you don't need to specify it.
+
 ### Options
 
 | Option  | Type      | Default | Description                                                                      |
@@ -45,6 +47,7 @@ This is useful when the document ID depends on runtime state, such as user inter
 
 ```ts
 class AuthorStore {
+  // Pass the collection ref — type Author is inferred from refs.authors
   private _author = createObservableDocument(refs.authors);
 
   loadAuthor(authorId: string) {
@@ -82,13 +85,14 @@ Register a callback that fires whenever new data arrives from Firestore. Returns
 This is the primary mechanism for cascading data loads, where one document's data determines what other documents to load:
 
 ```ts
+// Types are inferred from refs — no generics needed
 this._book = createObservableDocument(refs.books);
 this._author = createObservableDocument(refs.authors);
 
 this._book.attachTo(bookId);
 
+// data is typed as Book, so data.author_id is checked at compile time
 this._book.onData((data) => {
-  // When the book loads, attach to its author
   this._author.attachTo(data.author_id);
 });
 ```
@@ -99,10 +103,16 @@ The `onData` callback fires before the loading state is updated. This ensures de
 
 ## Factory Function
 
+The `createObservableDocument` factory function infers the generic type `T` from the reference you pass in. This means that when your references carry type information, you never need to specify generics manually:
+
 ```ts
 import { createObservableDocument } from "firestore-mobx";
 
-const doc = createObservableDocument(typedDocumentRef);
+// ref is DocumentReference<Author> → result is ObservableDocument<Author>
+const author = createObservableDocument(refs.authors);
+
+// ref is CollectionReference<Book> → result is ObservableDocument<Book>
+const book = createObservableDocument(refs.books);
 ```
 
-`createObservableDocument` infers the type `T` from the reference, which is useful when working with [typed-firestore](https://typed-firestore.codecompose.dev) references where types flow from the ref definitions.
+See [Typed Refs](/getting-started#typed-refs) for how to set up your references, or use [Typed Firestore](https://typed-firestore.codecompose.dev) for a more comprehensive approach.

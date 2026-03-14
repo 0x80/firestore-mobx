@@ -2,6 +2,8 @@
 
 The recommended way to use Firestore MobX is inside MobX stores. This page shows common patterns found in production codebases.
 
+All examples below assume you have a central `refs` object with typed Firestore references (see [Typed Refs](/getting-started#typed-refs)). This means the factory functions infer data types automatically — no manual generics needed.
+
 ## Basic Store
 
 A typical store creates observables in the constructor and exposes data through computed getters:
@@ -12,16 +14,12 @@ import {
   createObservableDocument,
   createObservableCollection,
 } from "firestore-mobx";
-import { collection, doc } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 
 class AuthorStore {
-  private _author = createObservableDocument<Author>(
-    doc(firestore, "authors", authorId),
-  );
+  private _author = createObservableDocument(doc(refs.authors, authorId));
 
-  private _books = createObservableCollection<Book>(
-    collection(firestore, "authors", authorId, "books"),
-  );
+  private _books = createObservableCollection(refs.books(authorId));
 
   constructor() {
     makeAutoObservable(this);
@@ -49,24 +47,22 @@ Often one document's data determines which other documents or sub-collections to
 
 ```ts
 class BookStore {
-  private _book = createObservableDocument<Book>(refs.books);
-  private _author = createObservableDocument<Author>(refs.authors);
+  private _book = createObservableDocument(refs.books);
+  private _author = createObservableDocument(refs.authors);
   private _chapters = createObservableCollection<Chapter>(undefined);
-  private _series = createObservableDocument<Series>(refs.series);
+  private _series = createObservableDocument(refs.series);
 
   constructor(bookId: string) {
     makeAutoObservable(this);
 
     this._book.attachTo(bookId);
 
+    // data is typed as Book, so all property access is checked at compile time
     this._book.onData((data) => {
-      // Load the author that wrote this book
       this._author.attachTo(data.author_id);
 
-      // Load the sub-collection of chapters
       this._chapters.attachTo(refs.bookChapters(bookId));
 
-      // Conditionally load the series this book belongs to
       if (data.series_id) {
         this._series.attachTo(data.series_id);
       } else {
@@ -95,7 +91,7 @@ Use `ready()` when you need to perform actions after data is first available, su
 
 ```ts
 class BookEditStore {
-  private _book = createObservableDocument<Book>(refs.books);
+  private _book = createObservableDocument(refs.books);
 
   editedTitle = "";
   editedChapters: Chapter[] = [];
@@ -160,7 +156,7 @@ this._book.onError((err) => {
 
 ## Deferred Sub-Collections
 
-When a collection depends on a parent that isn't known at construction time, pass `undefined` as the ref and attach later:
+When a collection depends on a parent that isn't known at construction time, pass `undefined` as the ref and attach later with a typed ref:
 
 ```ts
 class AuthorStore {
@@ -171,9 +167,8 @@ class AuthorStore {
   }
 
   loadOtherBooksByAuthor(authorId: string) {
-    this._otherBooks.attachTo(
-      collection(firestore, "authors", authorId, "books"),
-    );
+    // refs.books(authorId) returns CollectionReference<Book>
+    this._otherBooks.attachTo(refs.books(authorId));
   }
 
   clearOtherBooks() {
