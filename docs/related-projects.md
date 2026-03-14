@@ -7,11 +7,16 @@
 Firestore MobX works well with Typed Firestore. The `createObservableDocument` and `createObservableCollection` factory functions automatically infer the data type from typed references, so you don't need to specify generics manually:
 
 ```ts
-import { createObservableDocument, createObservableCollection } from "firestore-mobx";
+import {
+  createObservableDocument,
+  createObservableCollection,
+} from "firestore-mobx";
 
 // Types are inferred from the typed refs
 const author = createObservableDocument(refs.authors.doc(authorId));
-const books = createObservableCollection(refs.authors.doc(authorId).collection("books"));
+const books = createObservableCollection(
+  refs.authors.doc(authorId).collection("books"),
+);
 ```
 
 ## Firestorter

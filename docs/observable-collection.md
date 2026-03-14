@@ -18,20 +18,20 @@ The `queryCreatorFn` receives the collection reference and should return a Fires
 
 ### Options
 
-| Option                   | Type      | Default | Description                                                    |
-| ------------------------ | --------- | ------- | -------------------------------------------------------------- |
-| `debug`                  | `boolean` | `false` | Enable debug logging to the console.                           |
-| `lazy`                   | `boolean` | `false` | Defer loading until the collection is observed. See [Lazy Loading](/lazy-loading). |
-| `ignoreInitialSnapshot`  | `boolean` | `false` | Skip the first snapshot from the listener.                     |
+| Option                  | Type      | Default | Description                                                                        |
+| ----------------------- | --------- | ------- | ---------------------------------------------------------------------------------- |
+| `debug`                 | `boolean` | `false` | Enable debug logging to the console.                                               |
+| `lazy`                  | `boolean` | `false` | Defer loading until the collection is observed. See [Lazy Loading](/lazy-loading). |
+| `ignoreInitialSnapshot` | `boolean` | `false` | Skip the first snapshot from the listener.                                         |
 
 ## Properties
 
-| Property       | Type              | Description                                                 |
-| -------------- | ----------------- | ----------------------------------------------------------- |
-| `documents`    | `Document<T>[]`   | Array of documents, each with `id`, `data`, and `ref`.      |
-| `isEmpty`      | `boolean`         | Whether the collection has no documents.                    |
-| `hasDocuments`  | `boolean`         | Whether the collection has at least one document.           |
-| `isLoading`    | `boolean`         | Whether the collection is currently loading.                |
+| Property       | Type                  | Description                                            |
+| -------------- | --------------------- | ------------------------------------------------------ |
+| `documents`    | `Document<T>[]`       | Array of documents, each with `id`, `data`, and `ref`. |
+| `isEmpty`      | `boolean`             | Whether the collection has no documents.               |
+| `hasDocuments` | `boolean`             | Whether the collection has at least one document.      |
+| `isLoading`    | `boolean`             | Whether the collection is currently loading.           |
 | `path`         | `string \| undefined` | The Firestore path of the collection.                  |
 | `ref`          | `CollectionReference` | The collection reference. Throws if not set.           |
 
@@ -56,9 +56,7 @@ class AuthorStore {
   private _books = createObservableCollection<Book>(undefined);
 
   loadAuthor(authorId: string) {
-    this._books.attachTo(
-      collection(firestore, "authors", authorId, "books"),
-    );
+    this._books.attachTo(collection(firestore, "authors", authorId, "books"));
   }
 
   get books() {

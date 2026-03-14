@@ -8,16 +8,18 @@ Pass `lazy: true` in the options to defer loading until the observable is active
 
 ```ts
 const author = new ObservableDocument<Author>(authorRef, { lazy: true });
-const books = new ObservableCollection<Book>(booksRef, undefined, { lazy: true });
+const books = new ObservableCollection<Book>(booksRef, undefined, {
+  lazy: true,
+});
 ```
 
 ## Behavior Differences
 
-| Behavior                     | Default (`lazy: false`)           | Lazy (`lazy: true`)                  |
-| ---------------------------- | --------------------------------- | ------------------------------------ |
-| Listener setup               | Immediately on construction       | When first observed                  |
-| Listener teardown            | Never (stays active)              | When no longer observed              |
-| Data freshness when observed | Always current                    | Fetches on first observation         |
+| Behavior                     | Default (`lazy: false`)     | Lazy (`lazy: true`)          |
+| ---------------------------- | --------------------------- | ---------------------------- |
+| Listener setup               | Immediately on construction | When first observed          |
+| Listener teardown            | Never (stays active)        | When no longer observed      |
+| Data freshness when observed | Always current              | Fetches on first observation |
 
 ## When to Use Lazy Loading
 

@@ -8,7 +8,10 @@ A typical store creates observables in the constructor and exposes data through 
 
 ```ts
 import { makeAutoObservable } from "mobx";
-import { createObservableDocument, createObservableCollection } from "firestore-mobx";
+import {
+  createObservableDocument,
+  createObservableCollection,
+} from "firestore-mobx";
 import { collection, doc } from "firebase/firestore";
 
 class AuthorStore {

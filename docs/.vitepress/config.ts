@@ -2,8 +2,7 @@ import { defineConfig } from "vitepress";
 
 export default defineConfig({
   title: "Firestore MobX",
-  description:
-    "Observable Firestore documents and collections using MobX",
+  description: "Observable Firestore documents and collections using MobX",
   base: "/",
   cleanUrls: true,
 

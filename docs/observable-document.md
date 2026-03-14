@@ -12,20 +12,20 @@ The `source` parameter accepts either a `DocumentReference` (for a specific docu
 
 ### Options
 
-| Option  | Type      | Default | Description                                                    |
-| ------- | --------- | ------- | -------------------------------------------------------------- |
-| `debug` | `boolean` | `false` | Enable debug logging to the console.                           |
+| Option  | Type      | Default | Description                                                                      |
+| ------- | --------- | ------- | -------------------------------------------------------------------------------- |
+| `debug` | `boolean` | `false` | Enable debug logging to the console.                                             |
 | `lazy`  | `boolean` | `false` | Defer loading until the document is observed. See [Lazy Loading](/lazy-loading). |
 
 ## Properties
 
-| Property    | Type             | Description                                                    |
-| ----------- | ---------------- | -------------------------------------------------------------- |
-| `data`      | `T \| undefined` | The document data, or `undefined` if not loaded or not found.  |
-| `document`  | `Document<T>`    | Object with `id`, `data`, and `ref`. Throws if not available.  |
-| `id`        | `string`         | The document ID, or `"__no_id"` if no reference is set.        |
-| `isLoading` | `boolean`        | Whether the document is currently loading.                     |
-| `path`      | `string \| undefined` | The full Firestore path of the document.                 |
+| Property    | Type                  | Description                                                   |
+| ----------- | --------------------- | ------------------------------------------------------------- |
+| `data`      | `T \| undefined`      | The document data, or `undefined` if not loaded or not found. |
+| `document`  | `Document<T>`         | Object with `id`, `data`, and `ref`. Throws if not available. |
+| `id`        | `string`              | The document ID, or `"__no_id"` if no reference is set.       |
+| `isLoading` | `boolean`             | Whether the document is currently loading.                    |
+| `path`      | `string \| undefined` | The full Firestore path of the document.                      |
 
 ## Methods
 
