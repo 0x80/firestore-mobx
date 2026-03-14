@@ -5,19 +5,7 @@ export function assert(condition: unknown, msg: string): asserts condition {
 }
 
 export function createId(): string {
-  const array = new Uint8Array(4);
-  crypto.getRandomValues(array);
-  return Array.from(array, (b) => b.toString(36).padStart(2, "0"))
-    .join("")
-    .slice(0, 8);
-}
-
-export function first<T>(array: T[]): T | undefined {
-  return array[0];
-}
-
-export function last<T>(array: T[]): T | undefined {
-  return array[array.length - 1];
+  return crypto.randomUUID().slice(0, 8);
 }
 
 /**

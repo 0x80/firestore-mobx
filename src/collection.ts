@@ -98,9 +98,8 @@ export class ObservableCollection<T extends DocumentData = DocumentData> {
     this.initializeReadyPromise();
     /**
      * NOTE: I wish it was possible to extract the ref from a Query object,
-     * because then we could make a single source parameter CollectionReference
-     *
-     * | Query
+     * because then we could make a single source parameter
+     * CollectionReference | Query
      */
     if (hasReference(ref)) {
       this.collectionRef = ref;
@@ -182,6 +181,7 @@ export class ObservableCollection<T extends DocumentData = DocumentData> {
     this.logDebug(`Change source to ${newRef ? newRef.path : undefined}`);
     this.firedInitialFetch = false;
     this.collectionRef = newRef;
+    this.sourceId = createId();
 
     this.initializeReadyPromise();
 
@@ -189,7 +189,6 @@ export class ObservableCollection<T extends DocumentData = DocumentData> {
       if (this.queryCreatorFn) {
         this.logDebug("Update query using new ref source");
         this._query = this.queryCreatorFn(newRef);
-        this.sourceId = createId();
       }
 
       if (this.isObserved || !this.isLazy) {
